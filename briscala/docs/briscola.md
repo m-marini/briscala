@@ -4,36 +4,22 @@ Briscola
 Stato
 -----
 
-Lo stato di gioco della briscola è espresso con 40 carte.
+Le carte da gioco sono 40: 10 carte di briscola e 10 carte di 3 gruppi di altri semi
 
-Le prime 10 rappresentano le briscole e possono avere 5 stati esclusivi:
-  
-  1 in mano al giocatore
-  2 in mano all'avversario
-  3 nel mazzo del giocatore
-  4 nel mazzo dell'avversario
-  5 nel mazzo
+Lo stato di gioco è determinato da:
+  * una sequenza di carte in mano al giocatore
+  * un insieme di carte vinte dal giocatore
+  * un insieme di carte perse dal giocatore
+  * la carte di briscola
+  * la carta giocata dall'avversario (facoltativa)
+  * una sequenza di carte rimanenti (quelle nel mazzo + quelle dell'avversario)
 
-e uno stato aggiuntivo
-  6 scoperta
+Ogni passo di gioco consinte nella scelta da parte del giocatore di una delle proprie carte.
+Abbiamo vari possibilità dello stato successivo:
 
-Le altre carte possono avere 5 possibili stati
-  
-  1 in mano al giocatore
-  2 in mano all'avversario
-  3 nel mazzo del giocatore
-  4 nel mazzo dell'avversario
-  5 nel mazzo
+  * fine il giocatore non ha più carte
+  * finale sono rimaste al più 3 carte nel mazzo e nessuna briscola
+  * finale sono rimaste al più 2 carte nel mazzo e la briscola
+  * durante il gioco: sono rimaste più di 3 carte nel mazzo e nessuna carta giocata
+  * durante il gioco: sono rimaste più di 3 carte nel mazzo e una carta giocata
 
-Possiamo quindi identificare
-
-`10 * 6 + 30 * 5 = 60 + 150`
-
-210 features binarie delle quali solo 10 + 1 + 30 = 41 attive.
-
-I semi non briscola sono tra loro intercambiabili per rappresentare lo stato.
-Per ridurre gli stati possibili i semi delle 30 carte sono ordinate per
-
-  1 # di carte nel mazzo,
-  2 # di carte nel mazzo del giocatore,
-  3 # di carte nel mazzo avversario.
