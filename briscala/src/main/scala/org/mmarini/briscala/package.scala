@@ -2,13 +2,23 @@ package org.mmarini
 
 package object briscala {
 
-  object CardStatus extends Enumeration {
-    val Player = Value("Player")
-    val Won = Value("Won")
-    val Lost = Value("Lost")
+  object Seed extends Enumeration {
     val Trump = Value("Trump")
-    val Deck = Value("Deck")
-    val Played = Value("Played")
-  
+    val Seed1 = Value("Seed1")
+    val Seed2 = Value("Seed2")
+    val Seed3 = Value("Seed3")
+  }
+
+  object Figure extends Enumeration {
+    val Ace = Value("Ace")
+    val Two = Value(2)
+    val Three = Value(3)
+    val Four = Value(4)
+    val Five = Value(5)
+    val Six = Value(6)
+    val Seven = Value(7)
+    val Jack = Value("Jack")
+    val Knight = Value("Knight")
+    val King = Value("King")
   }
 }

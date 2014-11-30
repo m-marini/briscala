@@ -1,7 +1,7 @@
 package org.mmarini.briscala
 
 import scala.util.Random
-import scala.reflect.internal.util.Collections
+import org.mmarini.briscala._
 
 /**
  *
@@ -11,7 +11,7 @@ class GameGen(random: Random) {
   /**
    * Suffle deck
    */
-  def shuffle(deck: IndexedSeq[Int], n: Int): IndexedSeq[Int] =
+  def shuffle(deck: IndexedSeq[Card], n: Int): IndexedSeq[Card] =
     if (n <= 1)
       deck
     else {
@@ -22,14 +22,18 @@ class GameGen(random: Random) {
         shuffle(deck.updated(i, deck(n - 1)).updated(n - 1, deck(i)), n - 1)
     }
 
+  def initDeck: IndexedSeq[Card] =
+    (for {
+      i <- Figure.values
+      j <- Seed.values
+    } yield Card(i, j)).toIndexedSeq
+
   /**
    * Create a random inital game Status
    */
   def create(): Status = {
 
-    val deck = shuffle(0 to 39, 40);
-    Status(deck.take(3).foldLeft(
-      (0 to 39).map(_ => CardStatus.Deck).toVector)((s, i) => s.updated(i, CardStatus.Player)).
-      updated(deck(3), CardStatus.Trump))
+    val deck = shuffle(initDeck, 40);
+    Status(deck.take(3).toSet, Set(), Set(), None, deck(3))
   }
 }
