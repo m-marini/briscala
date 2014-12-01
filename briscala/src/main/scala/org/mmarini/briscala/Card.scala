@@ -5,6 +5,11 @@ package org.mmarini.briscala
 case class Card(figure: Figure.Value, seed: Seed.Value) {
 
   /**
+   * Create a card from the id
+   */
+  def this(id: Int) = this(Figure(id % 10), Seed(id / 10))
+
+  /**
    * Return the score of the card
    */
   def score: Int = figure match {
@@ -20,4 +25,19 @@ case class Card(figure: Figure.Value, seed: Seed.Value) {
    * return true if card is a trump
    */
   def isTrump: Boolean = seed == Seed.Trump
+
+  /**
+   * Return true if the card win over another card
+   */
+  def versus(other: Card): Boolean = other match {
+    case Card(of, os) if (seed == os) => figure.id > of.id
+    case Card(_, os) if (seed == Seed.Trump) => true
+    case Card(_, os) if (os == Seed.Trump) => false
+    case _ => true
+  }
+
+  /**
+   * Return the id of a card
+   */
+  def id: Int = figure.id + seed.id * 10
 }

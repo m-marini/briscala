@@ -10,15 +10,15 @@ package object briscala {
   }
 
   object Figure extends Enumeration {
-    val Ace = Value("Ace")
-    val Two = Value(2)
-    val Three = Value(3)
-    val Four = Value(4)
-    val Five = Value(5)
-    val Six = Value(6)
-    val Seven = Value(7)
+    val Two = Value("2")
+    val Four = Value("4")
+    val Five = Value("5")
+    val Six = Value("6")
+    val Seven = Value("7")
     val Jack = Value("Jack")
     val Knight = Value("Knight")
     val King = Value("King")
+    val Three = Value("3")
+    val Ace = Value("Ace")
   }
 }
