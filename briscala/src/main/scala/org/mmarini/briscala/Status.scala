@@ -92,7 +92,7 @@ case class Status(playerCards: IndexedSeq[Card],
         // Ultima mano dell'avversario che vince 
         Status(
           oppositeCards :+ deck(0),
-          playerCards.filter(_ == card) :+ trump,
+          playerCards.filterNot(_ == card) :+ trump,
           lostCards + played.get + card,
           wonCards,
           None,
