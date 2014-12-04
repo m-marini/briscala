@@ -56,79 +56,86 @@ case class Status(playerCards: IndexedSeq[Card],
    * Generate the status when played a card
    */
   def nextStatus(choice: Int): Status = {
-    val card = playerCards(choice)
-    if (played.isEmpty)
-      Status(
-        oppositeCards,
-        playerCards.filterNot(_ == card),
-        lostCards,
-        wonCards,
-        Some(card),
-        trump,
-        deck).optimize
-    else if (deck.isEmpty) {
-      if (played.get.versus(card))
-        // Finale mano dell'avversario che vince 
+    if (playerCards.isEmpty)
+      this
+    else {
+      val card = playerCards(choice)
+      if (played.isEmpty)
         Status(
           oppositeCards,
           playerCards.filterNot(_ == card),
-          lostCards + played.get + card,
-          wonCards,
-          None,
-          trump,
-          deck).optimize
-      else
-        // Finale mano dell'avversario che perde 
-        Status(
-          playerCards.filterNot(_ == card),
-          oppositeCards,
-          wonCards + played.get + card,
           lostCards,
-          None,
+          wonCards,
+          Some(card),
           trump,
           deck).optimize
-    } else if (deck.length == 1) {
-      if (played.get.versus(card))
-        // Ultima mano dell'avversario che vince 
+      else if (deck.isEmpty) {
+        if (played.get.versus(card))
+          // Finale mano dell'avversario che vince 
+          Status(
+            oppositeCards,
+            playerCards.filterNot(_ == card),
+            lostCards + played.get + card,
+            wonCards,
+            None,
+            trump,
+            deck).optimize
+        else
+          // Finale mano dell'avversario che perde 
+          Status(
+            playerCards.filterNot(_ == card),
+            oppositeCards,
+            wonCards + played.get + card,
+            lostCards,
+            None,
+            trump,
+            deck).optimize
+      } else if (deck.length == 1) {
+        if (played.get.versus(card))
+          // Ultima mano dell'avversario che vince 
+          Status(
+            oppositeCards :+ deck(0),
+            playerCards.filterNot(_ == card) :+ trump,
+            lostCards + played.get + card,
+            wonCards,
+            None,
+            trump,
+            IndexedSeq()).optimize
+        else
+          // Ultima mano dell'avversario che perde 
+          Status(
+            playerCards.filterNot(_ == card) :+ deck(0),
+            oppositeCards :+ trump,
+            wonCards + played.get + card,
+            lostCards,
+            None,
+            trump,
+            IndexedSeq()).optimize
+      } else if (played.get.versus(card))
+        // Durante il gioco mano dell'avversario che vince 
         Status(
-          oppositeCards :+ deck(0),
-          playerCards.filterNot(_ == card) :+ trump,
+          oppositeCards :+ deck(1),
+          playerCards.filterNot(_ == card) :+ deck(0),
           lostCards + played.get + card,
           wonCards,
           None,
           trump,
-          IndexedSeq()).optimize
+          deck.drop(2)).optimize
       else
-        // Ultima mano dell'avversario che perde 
+        // Durante il gioco mano dell'avversario che perde 
         Status(
           playerCards.filterNot(_ == card) :+ deck(0),
-          oppositeCards :+ trump,
+          oppositeCards :+ deck(1),
           wonCards + played.get + card,
           lostCards,
           None,
           trump,
-          IndexedSeq()).optimize
-    } else if (played.get.versus(card))
-      // Durante il gioco mano dell'avversario che vince 
-      Status(
-        oppositeCards :+ deck(1),
-        playerCards.filterNot(_ == card) :+ deck(0),
-        lostCards + played.get + card,
-        wonCards,
-        None,
-        trump,
-        deck.drop(2)).optimize
-    else
-      // Durante il gioco mano dell'avversario che perde 
-      Status(
-        playerCards.filterNot(_ == card) :+ deck(0),
-        oppositeCards :+ deck(1),
-        wonCards + played.get + card,
-        lostCards,
-        None,
-        trump,
-        deck.drop(2)).optimize
+          deck.drop(2)).optimize
+    }
   }
-
+  
+  /**
+   * 
+   */
   def optimize: Status = this
 }
