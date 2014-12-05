@@ -40,6 +40,7 @@ object Deck {
     val deck = shuffle(random)
     val Some(trump) = deck.drop(6).find(_.isTrump)
     Status(
+      random.nextBoolean,
       deck.take(3),
       deck.drop(3).take(3),
       Set(),
@@ -52,13 +53,16 @@ object Deck {
   /**
    *
    */
-  def createStatus(playerCards: IndexedSeq[Card],
+  def createStatus(
+    player0Turn: Boolean,
+    playerCards: IndexedSeq[Card],
     oppositeCards: IndexedSeq[Card],
     wonCards: Set[Card],
     lostCards: Set[Card],
     played: Option[Card],
     trump: Card,
     init: IndexedSeq[Card]) = Status(
+    player0Turn,
     playerCards,
     oppositeCards,
     wonCards,

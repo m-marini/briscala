@@ -9,10 +9,12 @@ import scala.util.Random
  * @author us00852
  *
  */
-case class Status(playerCards: IndexedSeq[Card],
-  oppositeCards: IndexedSeq[Card],
-  wonCards: Set[Card],
-  lostCards: Set[Card],
+case class Status(
+  player0Turn: Boolean,
+  player0Cards: IndexedSeq[Card],
+  player1Cards: IndexedSeq[Card],
+  won0Cards: Set[Card],
+  won1Cards: Set[Card],
   played: Option[Card],
   trump: Card,
   deck: IndexedSeq[Card]) {
@@ -20,12 +22,12 @@ case class Status(playerCards: IndexedSeq[Card],
   /**
    * Compute the score of player
    */
-  def playerScore: Int = score(wonCards)
+  def player0Score: Int = score(won0Cards)
 
   /**
    * Compute the score of opposite
    */
-  def oppositeScore: Int = score(lostCards)
+  def player1Score: Int = score(won1Cards)
 
   /**
    * Compute the score of a cards set
@@ -35,58 +37,72 @@ case class Status(playerCards: IndexedSeq[Card],
   /**
    * Return if the player wins the game
    */
-  def isWinner: Boolean = playerScore > 60
+  def isWinner0: Boolean = player0Score > 60
 
   /**
    * Return if the player wins the game
    */
-  def isLooser: Boolean = oppositeScore > 60
+  def isWinner1: Boolean = player1Score > 60
 
   /**
    *
    */
-  def isDraw: Boolean = playerScore == 60 && oppositeScore == 60
+  def isDraw: Boolean = player0Score == 60 && player1Score == 60
 
   /**
    * Return if the game is completed
    */
-  def isCompleted: Boolean = isWinner || isLooser || isDraw
+  def isCompleted: Boolean = isWinner0 || isWinner1 || isDraw
 
   /**
    * Generate the status when played a card
    */
   def nextStatus(choice: Int): Status = {
-    if (playerCards.isEmpty)
+    if (player0Cards.isEmpty)
       this
     else {
-      val card = playerCards(choice)
+      val card =
+        if (player0Turn) player0Cards(choice)
+        else player0Cards(choice)
       if (played.isEmpty)
-        Status(
-          oppositeCards,
-          playerCards.filterNot(_ == card),
-          lostCards,
-          wonCards,
-          Some(card),
-          trump,
-          deck).optimize
+        if (player0Turn)
+          Status(
+            !player0Turn,
+            player0Cards.filterNot(_ == card),
+            player1Cards,
+            won0Cards,
+            won1Cards,
+            Some(card),
+            trump,
+            deck).optimize
+        else
+          Status(
+            !player0Turn,
+            player0Cards,
+            player1Cards.filterNot(_ == card),
+            won0Cards,
+            won1Cards,
+            Some(card),
+            trump,
+            deck).optimize
       else if (deck.isEmpty) {
         if (played.get.versus(card))
           // Finale mano dell'avversario che vince 
           Status(
-            oppositeCards,
-            playerCards.filterNot(_ == card),
-            lostCards + played.get + card,
-            wonCards,
+            player1Cards,
+            player0Cards.filterNot(_ == card),
+            won1Cards + played.get + card,
+            won0Cards,
             None,
             trump,
             deck).optimize
         else
           // Finale mano dell'avversario che perde 
           Status(
-            playerCards.filterNot(_ == card),
-            oppositeCards,
-            wonCards + played.get + card,
-            lostCards,
+            player0Cards.filterNot(_ == card),
+            player1Cards,
+            won0Cards + played.get + card,
+            won1Cards,
             None,
             trump,
             deck).optimize
@@ -94,48 +110,48 @@ case class Status(playerCards: IndexedSeq[Card],
         if (played.get.versus(card))
           // Ultima mano dell'avversario che vince 
           Status(
-            oppositeCards :+ deck(0),
-            playerCards.filterNot(_ == card) :+ trump,
-            lostCards + played.get + card,
-            wonCards,
+            player1Cards :+ deck(0),
+            player0Cards.filterNot(_ == card) :+ trump,
+            won1Cards + played.get + card,
+            won0Cards,
             None,
             trump,
             IndexedSeq()).optimize
         else
           // Ultima mano dell'avversario che perde 
           Status(
-            playerCards.filterNot(_ == card) :+ deck(0),
-            oppositeCards :+ trump,
-            wonCards + played.get + card,
-            lostCards,
+            player0Cards.filterNot(_ == card) :+ deck(0),
+            player1Cards :+ trump,
+            won0Cards + played.get + card,
+            won1Cards,
             None,
             trump,
             IndexedSeq()).optimize
       } else if (played.get.versus(card))
         // Durante il gioco mano dell'avversario che vince 
         Status(
-          oppositeCards :+ deck(1),
-          playerCards.filterNot(_ == card) :+ deck(0),
-          lostCards + played.get + card,
-          wonCards,
+          player1Cards :+ deck(1),
+          player0Cards.filterNot(_ == card) :+ deck(0),
+          won1Cards + played.get + card,
+          won0Cards,
           None,
           trump,
           deck.drop(2)).optimize
       else
         // Durante il gioco mano dell'avversario che perde 
         Status(
-          playerCards.filterNot(_ == card) :+ deck(0),
-          oppositeCards :+ deck(1),
-          wonCards + played.get + card,
-          lostCards,
+          player0Cards.filterNot(_ == card) :+ deck(0),
+          player1Cards :+ deck(1),
+          won0Cards + played.get + card,
+          won1Cards,
           None,
           trump,
           deck.drop(2)).optimize
     }
   }
-  
+
   /**
-   * 
+   *
    */
   def optimize: Status = this
 }
