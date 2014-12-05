@@ -296,6 +296,6 @@ case class Status(
 
     val map = cardStatus.foldLeft((0 to 39).toIndexedSeq) { case (map, (idx, value)) => map.updated(idx, value) }
 
-    playerScore :: oppositeScore :: trump.id :: map.toList
+    (if (player0Turn) 1 else 0) :: player0Score :: player1Score :: trump.id :: map.toList
   }
 }
