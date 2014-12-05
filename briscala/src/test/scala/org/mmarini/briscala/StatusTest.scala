@@ -2,36 +2,37 @@ package org.mmarini.briscala
 
 import org.scalatest._
 import sun.security.jgss.krb5.InitSecContextToken
+import scala.collection.immutable.Vector
 
 class StatusTest extends FunSpec with Matchers {
 
   describe("A Status") {
     describe("with an ace and a three won") {
       it("should have player score 11 + 10") {
-        val status = Deck.createStatus(
+        val status = Status(
           true,
           IndexedSeq(),
           IndexedSeq(),
           Set(Card(Figure.Ace, Seed.Seed1), Card(Figure.Three, Seed.Seed1)),
           Set(),
           None,
-          Card(Figure.Three, Seed.Trump),
-          IndexedSeq())
+          new Card(0),
+          Vector())
         status.player0Score should be(21)
       }
     }
 
     describe("with an ace and a king lost") {
       it("should have opposite score 11 + 4") {
-        val status = Deck.createStatus(
+        val status = Status(
           true,
           IndexedSeq(),
           IndexedSeq(),
           Set(),
           Set(Card(Figure.Ace, Seed.Seed1), Card(Figure.King, Seed.Seed1)),
           None,
-          Card(Figure.Three, Seed.Trump),
-          IndexedSeq())
+          new Card(0),
+          Vector())
         status.player1Score should be(15)
       }
     }
