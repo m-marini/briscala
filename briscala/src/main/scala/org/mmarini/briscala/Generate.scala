@@ -2,8 +2,10 @@ package org.mmarini.briscala
 
 import scala.util.Random
 
+import scalax.file.Path
+import scalax.io.JavaConverters.asOutputUnmanagedConverter
 import scalax.io.Output
-import scalax.io.Resource
+import scalax.io.StandardOpenOption.WriteAppend
 
 object Generate extends App {
 
@@ -12,9 +14,9 @@ object Generate extends App {
   val filename = argFor("--file");
 
   val out: Output = if (filename.isEmpty)
-    Resource.fromOutputStream(System.out)
+    System.out.asUnmanagedOutput
   else
-    Resource.fromFile(filename.get)
+    Path(filename.get).delete().outputStream(WriteAppend: _*)
 
   val random = if (seed == None) new Random else new Random(seed.get)
 
@@ -34,8 +36,13 @@ object Generate extends App {
     case Some(value) => Some(value.toInt)
   }
 
-  def save(l: List[Status]) = {
-    out.write(l.toString)
-    out.write("\n")
-  }
+  def save(l: List[(Status, Int)]) =
+    l.reverse.foreach {
+      case (s, c) => {
+        out.write(c.toString)
+        out.write(" ")
+        out.writeStrings(s.toRow.map(_.toString), " ")
+        out.write("\n")
+      }
+    }
 }

@@ -478,6 +478,10 @@ class StatusTest extends FunSpec with Matchers {
       it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
       it("should have no played") { next.played should be(None) }
       it("should have empty deck") { next.deck should be(Vector()) }
+      it("should have completed") { next.isCompleted should be(true) }
+      it("should have been completed") { next.isCompleted should be(true) }
+      it("should have 120 total score ") { next.player0Score + next.player1Score should be(120) }
+      it("should have been determined") { next.isDetermined should be(true) }
     }
 
     describe("when final turn, player0 replies and looses") {
@@ -499,6 +503,9 @@ class StatusTest extends FunSpec with Matchers {
       it("should have player1 with previuos owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(0, 1).map(new Card(_))) }
       it("should have no played") { next.played should be(None) }
       it("should have empty deck") { next.deck should be(Vector()) }
+      it("should have been completed") { next.isCompleted should be(true) }
+      it("should have 120 total score ") { next.player0Score + next.player1Score should be(120) }
+      it("should have been determined") { next.isDetermined should be(true) }
     }
 
     describe("when final turn, player1 replies and wins") {
@@ -520,6 +527,9 @@ class StatusTest extends FunSpec with Matchers {
       it("should have player1 with previuos owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(0, 1).map(new Card(_))) }
       it("should have no played") { next.played should be(None) }
       it("should have empty deck") { next.deck should be(Vector()) }
+      it("should have been completed") { next.isCompleted should be(true) }
+      it("should have 120 total score ") { next.player0Score + next.player1Score should be(120) }
+      it("should have been determined") { next.isDetermined should be(true) }
     }
 
     describe("when final turn, player1 replies and looses") {
@@ -541,6 +551,9 @@ class StatusTest extends FunSpec with Matchers {
       it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
       it("should have no played") { next.played should be(None) }
       it("should have empty deck") { next.deck should be(Vector()) }
+      it("should have been completed") { next.isCompleted should be(true) }
+      it("should have 120 total score ") { next.player0Score + next.player1Score should be(120) }
+      it("should have been determined") { next.isDetermined should be(true) }
     }
   }
 }

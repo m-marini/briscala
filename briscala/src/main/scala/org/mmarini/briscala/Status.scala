@@ -33,12 +33,12 @@ case class Status(
   /**
    * Compute the score of a cards set
    */
-  def score(cards: Set[Card]): Int = cards.map(_.score).sum
+  def score(cards: Set[Card]): Int = cards.toList.map(_.score).sum
 
   /**
    * Return if the player wins the game
    */
-  val isWinner0: Boolean = player0Score > 60
+  lazy val isWinner0: Boolean = player0Score > 60
 
   /**
    * Return if the player wins the game
@@ -81,72 +81,71 @@ case class Status(
             deck).optimize
         else
           (played.get.versus(card), deck.size) match {
-            case (true, 0) =>
-              // player 0 perde in finale
-              Status(
-                false,
-                player0Cards.filterNot(_ == card),
-                player1Cards,
-                won0Cards,
-                won1Cards + card + played.get,
-                None,
-                trump,
-                deck).optimize
-            case (true, 1) =>
-              // player 0 perde last in-game
-              Status(
-                false,
-                player0Cards.filterNot(_ == card) :+ trump,
-                player1Cards :+ deck.head,
-                won0Cards,
-                won1Cards + card + played.get,
-                None,
-                trump,
-                Vector()).optimize
-            case (true, _) =>
-              // player 0 perde in-game
-              Status(
-                false,
-                player0Cards.filterNot(_ == card) :+ deck(1),
-                player1Cards :+ deck(0),
-                won0Cards,
-                won1Cards + card + played.get,
-                None,
-                trump,
-                deck.drop(2)).optimize
-            case (false, 0) =>
-              // player 0 vince in finale
-              Status(
-                true,
-                player0Cards.filterNot(_ == card),
-                player1Cards,
-                won0Cards + card + played.get,
-                won1Cards,
-                None,
-                trump,
-                deck).optimize
-            case (false, 1) =>
-              // player 0 vince last in-game
-              Status(
-                true,
-                player0Cards.filterNot(_ == card) :+ deck.head,
-                player1Cards :+ trump,
-                won0Cards + card + played.get,
-                won1Cards,
-                None,
-                trump,
-                Vector()).optimize
-            case (false, _) =>
-              // player 0 vince in-game
-              Status(
-                true,
-                player0Cards.filterNot(_ == card) :+ deck(0),
-                player1Cards :+ deck(1),
-                won0Cards + card + played.get,
-                won1Cards,
-                None,
-                trump,
-                deck.drop(2)).optimize
+            // player 0 perde in finale
+            case (true, 0) => Status(
+              false,
+              player0Cards.filterNot(_ == card),
+              player1Cards,
+              won0Cards,
+              won1Cards + card + played.get,
+              None,
+              trump,
+              deck).optimize
+
+            // player 0 perde last in-game
+            case (true, 1) => Status(
+              false,
+              player0Cards.filterNot(_ == card) :+ trump,
+              player1Cards :+ deck.head,
+              won0Cards,
+              won1Cards + card + played.get,
+              None,
+              trump,
+              Vector()).optimize
+
+            // player 0 perde in-game
+            case (true, _) => Status(
+              false,
+              player0Cards.filterNot(_ == card) :+ deck(1),
+              player1Cards :+ deck(0),
+              won0Cards,
+              won1Cards + card + played.get,
+              None,
+              trump,
+              deck.drop(2)).optimize
+
+            // player 0 vince in finale
+            case (false, 0) => Status(
+              true,
+              player0Cards.filterNot(_ == card),
+              player1Cards,
+              won0Cards + card + played.get,
+              won1Cards,
+              None,
+              trump,
+              deck).optimize
+
+            // player 0 vince last in-game
+            case (false, 1) => Status(
+              true,
+              player0Cards.filterNot(_ == card) :+ deck.head,
+              player1Cards :+ trump,
+              won0Cards + card + played.get,
+              won1Cards,
+              None,
+              trump,
+              Vector()).optimize
+
+            // player 0 vince in-game
+            case (false, _) => Status(
+              true,
+              player0Cards.filterNot(_ == card) :+ deck(0),
+              player1Cards :+ deck(1),
+              won0Cards + card + played.get,
+              won1Cards,
+              None,
+              trump,
+              deck.drop(2)).optimize
           }
       }
     else if (player1Cards.isEmpty)
@@ -165,72 +164,71 @@ case class Status(
           deck).optimize
       else
         (played.get.versus(card), deck.size) match {
-          case (true, 0) =>
-            // player 1 perde in finale
-            Status(
-              true,
-              player0Cards,
-              player1Cards.filterNot(_ == card),
-              won0Cards + card + played.get,
-              won1Cards,
-              None,
-              trump,
-              deck).optimize
-          case (true, 1) =>
-            // player 1 perde last in-game
-            Status(
-              true,
-              player0Cards :+ deck.head,
-              player1Cards.filterNot(_ == card) :+ trump,
-              won0Cards + card + played.get,
-              won1Cards,
-              None,
-              trump,
-              Vector()).optimize
-          case (true, _) =>
-            // player 1 perde in-game
-            Status(
-              true,
-              player0Cards :+ deck(0),
-              player1Cards.filterNot(_ == card) :+ deck(1),
-              won0Cards + card + played.get,
-              won1Cards,
-              None,
-              trump,
-              deck.drop(2)).optimize
-          case (false, 0) =>
-            // player 1 vince in finale
-            Status(
-              false,
-              player0Cards,
-              player1Cards.filterNot(_ == card),
-              won0Cards,
-              won1Cards + card + played.get,
-              None,
-              trump,
-              deck).optimize
-          case (false, 1) =>
-            // player 1 vince last in-game
-            Status(
-              false,
-              player0Cards :+ trump,
-              player1Cards.filterNot(_ == card) :+ deck.head,
-              won0Cards,
-              won1Cards + card + played.get,
-              None,
-              trump,
-              Vector()).optimize
-          case (false, _) =>
-            // player 1 vince in-game
-            Status(
-              false,
-              player0Cards :+ deck(1),
-              player1Cards.filterNot(_ == card) :+ deck(0),
-              won0Cards,
-              won1Cards + card + played.get,
-              None,
-              trump,
-              deck.drop(2)).optimize
+          // player 1 perde in finale
+          case (true, 0) => Status(
+            true,
+            player0Cards,
+            player1Cards.filterNot(_ == card),
+            won0Cards + card + played.get,
+            won1Cards,
+            None,
+            trump,
+            deck).optimize
+
+          // player 1 perde last in-game
+          case (true, 1) => Status(
+            true,
+            player0Cards :+ deck.head,
+            player1Cards.filterNot(_ == card) :+ trump,
+            won0Cards + card + played.get,
+            won1Cards,
+            None,
+            trump,
+            Vector()).optimize
+
+          // player 1 perde in-game
+          case (true, _) => Status(
+            true,
+            player0Cards :+ deck(0),
+            player1Cards.filterNot(_ == card) :+ deck(1),
+            won0Cards + card + played.get,
+            won1Cards,
+            None,
+            trump,
+            deck.drop(2)).optimize
+
+          // player 1 vince in finale
+          case (false, 0) => Status(
+            false,
+            player0Cards,
+            player1Cards.filterNot(_ == card),
+            won0Cards,
+            won1Cards + card + played.get,
+            None,
+            trump,
+            deck).optimize
+
+          // player 1 vince last in-game
+          case (false, 1) => Status(
+            false,
+            player0Cards :+ trump,
+            player1Cards.filterNot(_ == card) :+ deck.head,
+            won0Cards,
+            won1Cards + card + played.get,
+            None,
+            trump,
+            Vector()).optimize
+
+          // player 1 vince in-game
+          case (false, _) => Status(
+            false,
+            player0Cards :+ deck(1),
+            player1Cards.filterNot(_ == card) :+ deck(0),
+            won0Cards,
+            won1Cards + card + played.get,
+            None,
+            trump,
+            deck.drop(2)).optimize
         }
     }
 
@@ -238,4 +236,41 @@ case class Status(
    *
    */
   def optimize: Status = this
+
+  /**
+   * Transform the status in int value
+   */
+  def toRow: List[Int] = {
+    object CardState extends Enumeration {
+      val Player0 = Value
+      val Player1 = Value
+      val Owned0 = Value
+      val Owned1 = Value
+      val Played = Value
+      val Deck = Value
+      val Trump = Value
+    }
+
+    val cardStatus =
+      player0Cards.toList.map(c => (c.id, CardState.Player0.id)) :::
+        player1Cards.toList.map(c => (c.id, CardState.Player1.id)) :::
+        won0Cards.toList.map(c => (c.id, CardState.Owned0.id)) :::
+        won1Cards.toList.map(c => (c.id, CardState.Owned1.id)) :::
+        deck.toList.map(c => (c.id, CardState.Deck.id)) :::
+        played.toList.map(c => (c.id, CardState.Played.id)) :::
+        (if (deck.isEmpty) List() else List((trump.id, CardState.Trump.id)))
+
+    val map = cardStatus.foldLeft((0 to 39).toIndexedSeq) { case (map, (idx, value)) => map.updated(idx, value) }
+
+    (if (player0Turn) 1 else 0) ::
+      ((player0Turn, isWinner0, isWinner1) match {
+        case (false, true, false) => -player0Score
+        case (false, false, true) => player1Score
+        case (true, true, false) => player0Score
+        case (true, false, true) => -player1Score
+        case _ => 0
+      }) ::
+      trump.id ::
+      map.toList
+  }
 }
