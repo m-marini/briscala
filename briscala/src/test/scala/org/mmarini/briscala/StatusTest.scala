@@ -38,7 +38,7 @@ class StatusTest extends FunSpec with Matchers {
   }
 
   describe("The next status") {
-    describe("when player0 playing 2nd choice") {
+    describe("when player0 plays 2nd choice") {
       val status = Status(
         true,
         (1 to 3).map(new Card(_)),
@@ -48,17 +48,18 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         (7 to 39).map(new Card(_)))
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 remaining with 2 cards") { status.nextStatus(1).player0Cards should be(Seq(1, 3).map(new Card(_))) }
-      it("should have player1 with previous cards") { status.nextStatus(1).player1Cards should be(status.player1Cards) }
-      it("should have player0 with previous won cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous won cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have the played card in the table") { status.nextStatus(1).played should contain(new Card(2)) }
-      it("should have deck cards with previous cards") { status.nextStatus(1).deck should be(status.deck) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 remaining with 2 cards") { next.player0Cards should be(Seq(1, 3).map(new Card(_))) }
+      it("should have player1 with previous cards") { next.player1Cards should be(status.player1Cards) }
+      it("should have player0 with previous won cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous won cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have the played card in the table") { next.played should contain(new Card(2)) }
+      it("should have deck cards with previous cards") { next.deck should be(status.deck) }
     }
 
-    describe("when player1 playing 2nd choice") {
+    describe("when player1 plays 2nd choice") {
       val status = Status(
         false,
         (1 to 3).map(new Card(_)),
@@ -68,17 +69,18 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         (7 to 39).map(new Card(_)))
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with previous cards") { status.nextStatus(1).player0Cards should be(status.player0Cards) }
-      it("should have player1 reimaning with 2 cards") { status.nextStatus(1).player1Cards should be(Seq(4, 6).map(new Card(_))) }
-      it("should have player0 with previous won cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous won cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have the played card in the table") { status.nextStatus(1).played should contain(new Card(5)) }
-      it("should have deck cards with previous cards") { status.nextStatus(1).deck should be(status.deck) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with previous cards") { next.player0Cards should be(status.player0Cards) }
+      it("should have player1 reimaning with 2 cards") { next.player1Cards should be(Seq(4, 6).map(new Card(_))) }
+      it("should have player0 with previous won cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous won cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have the played card in the table") { next.played should contain(new Card(5)) }
+      it("should have deck cards with previous cards") { next.deck should be(status.deck) }
     }
 
-    describe("when player0 replying a win") {
+    describe("when player0 replies and wins") {
       val status = Status(
         true,
         (4 to 6).map(new Card(_)),
@@ -88,37 +90,39 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(2)),
         new Card(0),
         (7 to 39).map(new Card(_)))
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(4, 6, 7).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(1, 3, 8).map(new Card(_))) }
-      it("should have player0 with played won cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(new Card(2), new Card(5))) }
-      it("should have player1 with previous won cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have deck with previous cards without the first 2 ones") { status.nextStatus(1).deck should be(status.deck.drop(2)) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(4, 6, 7).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(1, 3, 8).map(new Card(_))) }
+      it("should have player0 with played won cards") { next.won0Cards should be(status.won0Cards ++ Set(new Card(2), new Card(5))) }
+      it("should have player1 with previous won cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have deck with previous cards without the first 2 ones") { next.deck should be(status.deck.drop(2)) }
     }
 
-    describe("when player0 replying a lost") {
+    describe("when player0 replies and looses") {
       val status = Status(
         true,
         (1 to 3).map(new Card(_)),
         Vector(4, 6).map(new Card(_)),
         Set(),
         Set(),
-        Some(new Card(2)),
+        Some(new Card(5)),
         new Card(5),
         (7 to 39).map(new Card(_)))
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(1, 3, 8).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(4, 6, 7).map(new Card(_))) }
-      it("should have player0 with previous won cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with played won cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(new Card(2), new Card(5))) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have deck with previous cards without the first 2 ones") { status.nextStatus(1).deck should be(status.deck.drop(2)) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(1, 3, 8).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(4, 6, 7).map(new Card(_))) }
+      it("should have player0 with previous won cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with played won cards") { next.won1Cards should be(status.won1Cards ++ Set(2, 5).map(new Card(_))) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have deck with previous cards without the first 2 ones") { next.deck should be(status.deck.drop(2)) }
     }
 
-    describe("when player1 replying a win") {
+    describe("when player1 replies and wins") {
       val status = Status(
         false,
         Vector(1, 3).map(new Card(_)),
@@ -128,37 +132,39 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(2)),
         new Card(0),
         (7 to 39).map(new Card(_)))
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(1, 3, 8).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(4, 6, 7).map(new Card(_))) }
-      it("should have player0 with previous won cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with played won cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(new Card(2), new Card(5))) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have deck with previous cards without the first 2 ones") { status.nextStatus(1).deck should be(status.deck.drop(2)) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(1, 3, 8).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(4, 6, 7).map(new Card(_))) }
+      it("should have player0 with previous won cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with played won cards") { next.won1Cards should be(status.won1Cards ++ Set(new Card(2), new Card(5))) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have deck with previous cards without the first 2 ones") { next.deck should be(status.deck.drop(2)) }
     }
 
-    describe("when player1 replying a lost") {
+    describe("when player1 replies and looses") {
       val status = Status(
         false,
         Vector(4, 6).map(new Card(_)),
         (1 to 3).map(new Card(_)),
         Set(),
         Set(),
-        Some(new Card(2)),
-        new Card(5),
+        Some(new Card(5)),
+        new Card(0),
         (7 to 39).map(new Card(_)))
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(4, 6, 7).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(1, 3, 8).map(new Card(_))) }
-      it("should have player0 with played won cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(new Card(2), new Card(5))) }
-      it("should have player1 with previous won cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have deck with previous cards without the first 2 ones") { status.nextStatus(1).deck should be(status.deck.drop(2)) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(4, 6, 7).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(1, 3, 8).map(new Card(_))) }
+      it("should have player0 with played won cards") { next.won0Cards should be(status.won0Cards ++ Set(new Card(2), new Card(5))) }
+      it("should have player1 with previous won cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have deck with previous cards without the first 2 ones") { next.deck should be(status.deck.drop(2)) }
     }
 
-    describe("when last in-game and player0 playing 2nd choice") {
+    describe("when last in-game and player0 plays 2nd choice") {
       val status = Status(
         true,
         (2 to 4).map(new Card(_)),
@@ -168,17 +174,18 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         Vector(new Card(1)))
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with 2 cards") { status.nextStatus(1).player0Cards should be(Seq(2, 4).map(new Card(_))) }
-      it("should have player1 with previous cards") { status.nextStatus(1).player1Cards should be(status.player1Cards) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have played card") { status.nextStatus(1).played should be(Some(new Card(3))) }
-      it("should have deck with previous cards") { status.nextStatus(1).deck should be(status.deck) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with 2 cards") { next.player0Cards should be(Seq(2, 4).map(new Card(_))) }
+      it("should have player1 with previous cards") { next.player1Cards should be(status.player1Cards) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have played card") { next.played should be(Some(new Card(3))) }
+      it("should have deck with previous cards") { next.deck should be(status.deck) }
     }
 
-    describe("when last in-game and player1 playing 2nd choice") {
+    describe("when last in-game and player1 plays 2nd choice") {
       val status = Status(
         false,
         (2 to 4).map(new Card(_)),
@@ -188,17 +195,18 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         Vector(new Card(1)))
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with previous cards") { status.nextStatus(1).player0Cards should be(status.player0Cards) }
-      it("should have player1 with 2 cards") { status.nextStatus(1).player1Cards should be(Seq(5, 7).map(new Card(_))) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have played card") { status.nextStatus(1).played should be(Some(new Card(6))) }
-      it("should have deck with previous cards") { status.nextStatus(1).deck should be(status.deck) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with previous cards") { next.player0Cards should be(status.player0Cards) }
+      it("should have player1 with 2 cards") { next.player1Cards should be(Seq(5, 7).map(new Card(_))) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have played card") { next.played should be(Some(new Card(6))) }
+      it("should have deck with previous cards") { next.deck should be(status.deck) }
     }
 
-    describe("when last in-game and player0 replying a win") {
+    describe("when last in-game and player0 replies and wins") {
       val status = Status(
         true,
         (5 to 7).map(new Card(_)),
@@ -208,17 +216,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(3)),
         new Card(0),
         Vector(new Card(1)))
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(5, 7, 1).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(2, 4, 0).map(new Card(_))) }
-      it("should have player0 with previuos owned cards plus played cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(3, 6).map(new Card(_))) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(5, 7, 1).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(2, 4, 0).map(new Card(_))) }
+      it("should have player0 with previuos owned cards plus played cards") { next.won0Cards should be(status.won0Cards ++ Set(3, 6).map(new Card(_))) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when last in-game and player0 replying a loss") {
+    describe("when last in-game and player0 replies a loss") {
       val status = Status(
         true,
         (2 to 4).map(new Card(_)),
@@ -228,17 +237,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(6)),
         new Card(0),
         Vector(new Card(1)))
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(2, 4, 0).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(5, 7, 1).map(new Card(_))) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards plus played cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(3, 6).map(new Card(_))) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(2, 4, 0).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(5, 7, 1).map(new Card(_))) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(3, 6).map(new Card(_))) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when last in-game and player1 replying a win") {
+    describe("when last in-game and player1 replies and wins") {
       val status = Status(
         false,
         Vector(2, 4).map(new Card(_)),
@@ -248,17 +258,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(3)),
         new Card(0),
         Vector(new Card(1)))
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(2, 4, 0).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(5, 7, 1).map(new Card(_))) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards plus played cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(3, 6).map(new Card(_))) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(2, 4, 0).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(5, 7, 1).map(new Card(_))) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(3, 6).map(new Card(_))) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when last in-game and player1 replying a loss") {
+    describe("when last in-game and player1 replies a loss") {
       val status = Status(
         false,
         Vector(5, 7).map(new Card(_)),
@@ -268,17 +279,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(6)),
         new Card(0),
         Vector(new Card(1)))
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with 3 cards") { status.nextStatus(1).player0Cards should be(Seq(5, 7, 1).map(new Card(_))) }
-      it("should have player1 with 3 cards") { status.nextStatus(1).player1Cards should be(Seq(2, 4, 0).map(new Card(_))) }
-      it("should have player0 with previuos owned cards plus played cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(3, 6).map(new Card(_))) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played card") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with 3 cards") { next.player0Cards should be(Seq(5, 7, 1).map(new Card(_))) }
+      it("should have player1 with 3 cards") { next.player1Cards should be(Seq(2, 4, 0).map(new Card(_))) }
+      it("should have player0 with previuos owned cards plus played cards") { next.won0Cards should be(status.won0Cards ++ Set(3, 6).map(new Card(_))) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played card") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when 3 cards final and player0 playing 2nd choice") {
+    describe("when 3 cards final and player0 plays 2nd choice") {
       val status = Status(
         true,
         Vector(0, 1, 2).map(new Card(_)),
@@ -288,17 +300,18 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         Vector())
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with 2 cards") { status.nextStatus(1).player0Cards should be(Seq(0, 2).map(new Card(_))) }
-      it("should have player1 with previous cards") { status.nextStatus(1).player1Cards should be(status.player1Cards) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have played card") { status.nextStatus(1).played should be(Some(new Card(1))) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with 2 cards") { next.player0Cards should be(Seq(0, 2).map(new Card(_))) }
+      it("should have player1 with previous cards") { next.player1Cards should be(status.player1Cards) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have played card") { next.played should be(Some(new Card(1))) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when 3 cards final and player1 playing 2nd choice") {
+    describe("when 3 cards final and player1 plays 2nd choice") {
       val status = Status(
         false,
         Vector(0, 1, 2).map(new Card(_)),
@@ -308,17 +321,18 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         Vector())
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player1 with previous cards") { status.nextStatus(1).player0Cards should be(status.player0Cards) }
-      it("should have player0 with 2 cards") { status.nextStatus(1).player1Cards should be(Seq(3, 5).map(new Card(_))) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have played card") { status.nextStatus(1).played should be(Some(new Card(1))) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player1 with previous cards") { next.player0Cards should be(status.player0Cards) }
+      it("should have player0 with 2 cards") { next.player1Cards should be(Seq(3, 5).map(new Card(_))) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have played card") { next.played should be(Some(new Card(4))) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when 3 cards final and player0 replying a win") {
+    describe("when 3 cards final and player0 replies and wins") {
       val status = Status(
         true,
         Vector(3, 4, 5).map(new Card(_)),
@@ -328,17 +342,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(1)),
         new Card(0),
         Vector())
+      val next = status.nextStatus(1)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player1 with 2 cards") { status.nextStatus(1).player0Cards should be(Seq(3, 5).map(new Card(_))) }
-      it("should have player0 with 2 cards") { status.nextStatus(1).player1Cards should be(Seq(0, 2).map(new Card(_))) }
-      it("should have player0 with previuos owned cards plus played cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(1, 6).map(new Card(_))) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player1 with 2 cards") { next.player0Cards should be(Seq(3, 5).map(new Card(_))) }
+      it("should have player0 with 2 cards") { next.player1Cards should be(Seq(0, 2).map(new Card(_))) }
+      it("should have player0 with previuos owned cards plus played cards") { next.won0Cards should be(status.won0Cards ++ Set(1, 4).map(new Card(_))) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when 3 cards final and player0 replying a loss") {
+    describe("when 3 cards final and player0 replies a loss") {
       val status = Status(
         true,
         Vector(0, 1, 2).map(new Card(_)),
@@ -348,17 +363,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(4)),
         new Card(0),
         Vector())
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player1 with 2 cards") { status.nextStatus(1).player0Cards should be(Seq(0, 2).map(new Card(_))) }
-      it("should have player0 with 2 cards") { status.nextStatus(1).player1Cards should be(Seq(3, 5).map(new Card(_))) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards plus played cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(1, 6).map(new Card(_))) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player1 with 2 cards") { next.player0Cards should be(Seq(0, 2).map(new Card(_))) }
+      it("should have player0 with 2 cards") { next.player1Cards should be(Seq(3, 5).map(new Card(_))) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(1, 4).map(new Card(_))) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when 3 cards final and player1 replying a win") {
+    describe("when 3 cards final and player1 replies and wins") {
       val status = Status(
         false,
         Vector(0, 2).map(new Card(_)),
@@ -368,17 +384,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(1)),
         new Card(0),
         Vector())
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player1 with 2 cards") { status.nextStatus(1).player0Cards should be(Seq(0, 2).map(new Card(_))) }
-      it("should have player0 with 2 cards") { status.nextStatus(1).player1Cards should be(Seq(3, 5).map(new Card(_))) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards plus played cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(1, 6).map(new Card(_))) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player1 with 2 cards") { next.player0Cards should be(Seq(0, 2).map(new Card(_))) }
+      it("should have player0 with 2 cards") { next.player1Cards should be(Seq(3, 5).map(new Card(_))) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(1, 4).map(new Card(_))) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when 3 cards final and player1 replying a loss") {
+    describe("when 3 cards final and player1 replies a loss") {
       val status = Status(
         false,
         Vector(3, 5).map(new Card(_)),
@@ -388,17 +405,18 @@ class StatusTest extends FunSpec with Matchers {
         Some(new Card(4)),
         new Card(0),
         Vector())
+      val next = status.nextStatus(1)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player1 with 2 cards") { status.nextStatus(1).player0Cards should be(Seq(3, 5).map(new Card(_))) }
-      it("should have player0 with 2 cards") { status.nextStatus(1).player1Cards should be(Seq(0, 2).map(new Card(_))) }
-      it("should have player0 with previuos owned cards plus played cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(1, 6).map(new Card(_))) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { next.player0Turn should be(true) }
+      it("should have player0 with 2 cards") { next.player0Cards should be(Seq(3, 5).map(new Card(_))) }
+      it("should have player1 with 2 cards") { next.player1Cards should be(Seq(0, 2).map(new Card(_))) }
+      it("should have player0 with previuos owned cards plus played cards") { next.won0Cards should be(status.won0Cards ++ Set(1, 4).map(new Card(_))) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when final turn and player0 playing the choice") {
+    describe("when final turn and player0 plays the choice") {
       val status = Status(
         true,
         Vector(0).map(new Card(_)),
@@ -408,17 +426,18 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         Vector())
+      val next = status.nextStatus(0)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with no cards") { status.nextStatus(1).player0Cards should be(Vector()) }
-      it("should have player1 with previous card") { status.nextStatus(1).player1Cards should be(status.player1Cards) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have played card") { status.nextStatus(1).played should be(Some(new Card(0))) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { status.nextStatus(0).player0Turn should be(false) }
+      it("should have player0 with no cards") { status.nextStatus(0).player0Cards should be(Vector()) }
+      it("should have player1 with previous card") { status.nextStatus(0).player1Cards should be(status.player1Cards) }
+      it("should have player0 with previuos owned cards") { status.nextStatus(0).won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards") { status.nextStatus(0).won1Cards should be(status.won1Cards) }
+      it("should have played card") { status.nextStatus(0).played should be(Some(new Card(0))) }
+      it("should have empty deck") { status.nextStatus(0).deck should be(Vector()) }
     }
 
-    describe("when final turn and player1 playing the choice") {
+    describe("when final turn and player1 plays the choice") {
       val status = Status(
         false,
         Vector(0).map(new Card(_)),
@@ -428,94 +447,99 @@ class StatusTest extends FunSpec with Matchers {
         None,
         new Card(0),
         Vector())
+      val next = status.nextStatus(0)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with previous card") { status.nextStatus(1).player0Cards should be(status.player0Cards) }
-      it("should have player1 with no cards") { status.nextStatus(1).player1Cards should be(Vector()) }
-      it("should have player0 with previuos owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have played card") { status.nextStatus(1).played should be(Some(new Card(1))) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with previous card") { next.player0Cards should be(status.player0Cards) }
+      it("should have player1 with no cards") { next.player1Cards should be(Vector()) }
+      it("should have player0 with previuos owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have played card") { next.played should be(Some(new Card(1))) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when final turn and player0 replying the win choice") {
+    describe("when final turn, player0 replies and wins") {
       val status = Status(
         true,
         Vector(new Card(1)),
         Vector(),
         (2 to 20).map(new Card(_)).toSet,
         (21 to 39).map(new Card(_)).toSet,
-        None,
+        Some(new Card(0)),
         new Card(0),
         Vector())
+      val next = status.nextStatus(0)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with no card") { status.nextStatus(1).player0Cards should be(Vector()) }
-      it("should have player1 with no cards") { status.nextStatus(1).player1Cards should be(Vector()) }
-      it("should have player0 with previuos owned cards plus played cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(0, 1).map(new Card(_))) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with no card") { next.player0Cards should be(Vector()) }
+      it("should have player1 with no cards") { next.player1Cards should be(Vector()) }
+      it("should have player0 with previuos owned cards plus played cards") { next.won0Cards should be(status.won0Cards ++ Set(0, 1).map(new Card(_))) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when final turn and player0 replying the loss choice") {
+    describe("when final turn, player0 replies and looses") {
       val status = Status(
         true,
         Vector(new Card(0)),
         Vector(),
         (2 to 20).map(new Card(_)).toSet,
         (21 to 39).map(new Card(_)).toSet,
-        None,
+        Some(new Card(1)),
         new Card(1),
         Vector())
+      val next = status.nextStatus(0)
 
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with no card") { status.nextStatus(1).player0Cards should be(Vector()) }
-      it("should have player1 with no cards") { status.nextStatus(1).player1Cards should be(Vector()) }
-      it("should have player0 with previous owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previuos owned cards plus played cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(0, 1).map(new Card(_))) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with no card") { next.player0Cards should be(Vector()) }
+      it("should have player1 with no cards") { next.player1Cards should be(Vector()) }
+      it("should have player0 with previous owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previuos owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(0, 1).map(new Card(_))) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
 
-    describe("when final turn and player1 replying the win choice") {
-      val status = Status(
-        false,
-        Vector(),
-        Vector(new Card(0)),
-        (2 to 20).map(new Card(_)).toSet,
-        (21 to 39).map(new Card(_)).toSet,
-        None,
-        new Card(1),
-        Vector())
-
-      it("should have player1 turn") { status.nextStatus(1).player0Turn should be(false) }
-      it("should have player0 with no card") { status.nextStatus(1).player0Cards should be(Vector()) }
-      it("should have player1 with no cards") { status.nextStatus(1).player1Cards should be(Vector()) }
-      it("should have player0 with previous owned cards") { status.nextStatus(1).won0Cards should be(status.won0Cards) }
-      it("should have player1 with previuos owned cards plus played cards") { status.nextStatus(1).won1Cards should be(status.won1Cards ++ Set(0, 1).map(new Card(_))) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
-    }
-
-    describe("when final turn and player1 replying the loss choice") {
+    describe("when final turn, player1 replies and wins") {
       val status = Status(
         false,
         Vector(),
         Vector(new Card(1)),
         (2 to 20).map(new Card(_)).toSet,
         (21 to 39).map(new Card(_)).toSet,
-        None,
+        Some(new Card(0)),
+        new Card(1),
+        Vector())
+      val next = status.nextStatus(0)
+
+      it("should have player1 turn") { next.player0Turn should be(false) }
+      it("should have player0 with no card") { next.player0Cards should be(Vector()) }
+      it("should have player1 with no cards") { next.player1Cards should be(Vector()) }
+      it("should have player0 with previous owned cards") { next.won0Cards should be(status.won0Cards) }
+      it("should have player1 with previuos owned cards plus played cards") { next.won1Cards should be(status.won1Cards ++ Set(0, 1).map(new Card(_))) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
+    }
+
+    describe("when final turn, player1 replies and looses") {
+      val status = Status(
+        false,
+        Vector(),
+        Vector(new Card(0)),
+        (2 to 20).map(new Card(_)).toSet,
+        (21 to 39).map(new Card(_)).toSet,
+        Some(new Card(1)),
         new Card(0),
         Vector())
+      val next = status.nextStatus(0)
 
-      it("should have player0 turn") { status.nextStatus(1).player0Turn should be(true) }
-      it("should have player0 with no card") { status.nextStatus(1).player0Cards should be(Vector()) }
-      it("should have player1 with no cards") { status.nextStatus(1).player1Cards should be(Vector()) }
-      it("should have player0 with previuos owned cards plus played cards") { status.nextStatus(1).won0Cards should be(status.won0Cards ++ Set(0, 1).map(new Card(_))) }
-      it("should have player1 with previous owned cards") { status.nextStatus(1).won1Cards should be(status.won1Cards) }
-      it("should have no played") { status.nextStatus(1).played should be(None) }
-      it("should have empty deck") { status.nextStatus(1).deck should be(Vector()) }
+      it("should have player0 turn") { next.player0Turn should be(true) }
+      it("should have player0 with no card") { next.player0Cards should be(Vector()) }
+      it("should have player1 with no cards") { next.player1Cards should be(Vector()) }
+      it("should have player0 with previuos owned cards plus played cards") { next.won0Cards should be(status.won0Cards ++ Set(0, 1).map(new Card(_))) }
+      it("should have player1 with previous owned cards") { next.won1Cards should be(status.won1Cards) }
+      it("should have no played") { next.played should be(None) }
+      it("should have empty deck") { next.deck should be(Vector()) }
     }
   }
 }
