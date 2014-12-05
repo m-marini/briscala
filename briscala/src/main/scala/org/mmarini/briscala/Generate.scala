@@ -36,10 +36,10 @@ object Generate extends App {
     case Some(value) => Some(value.toInt)
   }
 
-  def save(l: List[(Status, Int)]) =
+  def save(l: List[(Status, Option[Int])]) =
     l.reverse.foreach {
       case (s, c) => {
-        out.write(c.toString)
+        out.write(if (c.isEmpty) "-1" else s.playerCards(c.get).id.toString)
         out.write(" ")
         out.writeStrings(s.toRow.map(_.toString), " ")
         out.write("\n")

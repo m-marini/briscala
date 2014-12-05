@@ -4,13 +4,13 @@ import scala.util.Random
 
 object Game {
 
-  def create(random: Random): List[(Status, Int)] = {
-    def next(l: List[(Status, Int)], s: Status): List[(Status, Int)] =
+  def create(random: Random): List[(Status, Option[Int])] = {
+    def next(l: List[(Status, Option[Int])], s: Status): List[(Status, Option[Int])] =
       if (s.isCompleted)
-        (s, -1) :: l
+        (s, None) :: l
       else {
         val c = random.nextInt(s.numOfChoice)
-        next((s, c) :: l, s.nextStatus(c))
+        next((s, Some(c)) :: l, s.nextStatus(c))
       }
 
     next(List(), createInitStatus(random)).reverse;

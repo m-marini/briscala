@@ -19,7 +19,41 @@ case class Status(
   trump: Card,
   deck: IndexedSeq[Card]) {
 
-  lazy val numOfChoice = if (player0Turn) player0Cards.size else player1Cards.size
+  /**
+   * Return the player cards
+   */
+  lazy val playerCards = if (player0Turn) player0Cards else player1Cards
+
+  /**
+   * Return the player cards
+   */
+  lazy val oppositeCards = if (player0Turn) player1Cards else player0Cards
+
+  /**
+   * Return the player cards
+   */
+  lazy val wonCards = if (player0Turn) won0Cards else won1Cards
+
+  /**
+   * Return the player cards
+   */
+  lazy val lostCards = if (player0Turn) won1Cards else won0Cards
+
+  /**
+   * Return player score
+   */
+  lazy val playerScore = if (player0Turn) player0Score else player1Score
+
+  /**
+   * Return player score
+   */
+  lazy val oppositeScore = if (player0Turn) player1Score else player0Score
+
+  /**
+   * Return the number of possible choices
+   */
+  lazy val numOfChoice = playerCards.size
+
   /**
    * Compute the score of player
    */
@@ -242,35 +276,26 @@ case class Status(
    */
   def toRow: List[Int] = {
     object CardState extends Enumeration {
-      val Player0 = Value
-      val Player1 = Value
-      val Owned0 = Value
-      val Owned1 = Value
+      val Player = Value
+      val Opposite = Value
+      val Won = Value
+      val Lost = Value
       val Played = Value
-      val Deck = Value
       val Trump = Value
+      val Deck = Value
     }
 
     val cardStatus =
-      player0Cards.toList.map(c => (c.id, CardState.Player0.id)) :::
-        player1Cards.toList.map(c => (c.id, CardState.Player1.id)) :::
-        won0Cards.toList.map(c => (c.id, CardState.Owned0.id)) :::
-        won1Cards.toList.map(c => (c.id, CardState.Owned1.id)) :::
+      playerCards.toList.map(c => (c.id, CardState.Player.id)) :::
+        oppositeCards.toList.map(c => (c.id, CardState.Opposite.id)) :::
+        wonCards.toList.map(c => (c.id, CardState.Won.id)) :::
+        lostCards.toList.map(c => (c.id, CardState.Lost.id)) :::
         deck.toList.map(c => (c.id, CardState.Deck.id)) :::
         played.toList.map(c => (c.id, CardState.Played.id)) :::
         (if (deck.isEmpty) List() else List((trump.id, CardState.Trump.id)))
 
     val map = cardStatus.foldLeft((0 to 39).toIndexedSeq) { case (map, (idx, value)) => map.updated(idx, value) }
 
-    (if (player0Turn) 1 else 0) ::
-      ((player0Turn, isWinner0, isWinner1) match {
-        case (false, true, false) => -player0Score
-        case (false, false, true) => player1Score
-        case (true, true, false) => player0Score
-        case (true, false, true) => -player1Score
-        case _ => 0
-      }) ::
-      trump.id ::
-      map.toList
+    playerScore :: oppositeScore :: trump.id :: map.toList
   }
 }
