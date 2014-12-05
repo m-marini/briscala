@@ -19,15 +19,16 @@ case class Status(
   trump: Card,
   deck: IndexedSeq[Card]) {
 
+  lazy val numOfChoice = if (player0Turn) player0Cards.size else player1Cards.size
   /**
    * Compute the score of player
    */
-  def player0Score: Int = score(won0Cards)
+  lazy val player0Score: Int = score(won0Cards)
 
   /**
    * Compute the score of opposite
    */
-  def player1Score: Int = score(won1Cards)
+  lazy val player1Score: Int = score(won1Cards)
 
   /**
    * Compute the score of a cards set
@@ -37,22 +38,27 @@ case class Status(
   /**
    * Return if the player wins the game
    */
-  def isWinner0: Boolean = player0Score > 60
+  val isWinner0: Boolean = player0Score > 60
 
   /**
    * Return if the player wins the game
    */
-  def isWinner1: Boolean = player1Score > 60
+  lazy val isWinner1: Boolean = player1Score > 60
 
   /**
    *
    */
-  def isDraw: Boolean = player0Score == 60 && player1Score == 60
+  lazy val isDraw: Boolean = player0Score == 60 && player1Score == 60
 
   /**
    * Return if the game is completed
    */
-  def isCompleted: Boolean = isWinner0 || isWinner1 || isDraw
+  lazy val isCompleted: Boolean = numOfChoice == 0
+
+  /**
+   * Return if the result game is determined by now
+   */
+  lazy val isDetermined: Boolean = isWinner0 || isWinner1 || isDraw
 
   /**
    * Generate the status when played a card

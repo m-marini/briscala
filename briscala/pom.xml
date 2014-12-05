@@ -31,6 +31,11 @@
 			<artifactId>scala-library</artifactId>
 			<version>${scala.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.github.scala-incubator.io</groupId>
+			<artifactId>scala-io-file_${scala.tools.version}</artifactId>
+			<version>0.4.3-1</version>
+		</dependency>
 
 		<!-- Test -->
 
