@@ -30,6 +30,6 @@ object Game {
       Set(),
       None,
       trump,
-      deck.drop(6).filterNot(_ == trump)).optimize
+      deck.drop(6).filterNot(_ == trump))
   }
 }

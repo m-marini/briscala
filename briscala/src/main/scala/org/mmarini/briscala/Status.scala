@@ -112,7 +112,7 @@ case class Status(
             won1Cards,
             Some(card),
             trump,
-            deck).optimize
+            deck)
         else
           (played.get.versus(card), deck.size) match {
             // player 0 perde in finale
@@ -124,7 +124,7 @@ case class Status(
               won1Cards + card + played.get,
               None,
               trump,
-              deck).optimize
+              deck)
 
             // player 0 perde last in-game
             case (true, 1) => Status(
@@ -135,7 +135,7 @@ case class Status(
               won1Cards + card + played.get,
               None,
               trump,
-              Vector()).optimize
+              Vector())
 
             // player 0 perde in-game
             case (true, _) => Status(
@@ -146,7 +146,7 @@ case class Status(
               won1Cards + card + played.get,
               None,
               trump,
-              deck.drop(2)).optimize
+              deck.drop(2))
 
             // player 0 vince in finale
             case (false, 0) => Status(
@@ -157,7 +157,7 @@ case class Status(
               won1Cards,
               None,
               trump,
-              deck).optimize
+              deck)
 
             // player 0 vince last in-game
             case (false, 1) => Status(
@@ -168,7 +168,7 @@ case class Status(
               won1Cards,
               None,
               trump,
-              Vector()).optimize
+              Vector())
 
             // player 0 vince in-game
             case (false, _) => Status(
@@ -179,7 +179,7 @@ case class Status(
               won1Cards,
               None,
               trump,
-              deck.drop(2)).optimize
+              deck.drop(2))
           }
       }
     else if (player1Cards.isEmpty)
@@ -195,7 +195,7 @@ case class Status(
           won1Cards,
           Some(card),
           trump,
-          deck).optimize
+          deck)
       else
         (played.get.versus(card), deck.size) match {
           // player 1 perde in finale
@@ -207,7 +207,7 @@ case class Status(
             won1Cards,
             None,
             trump,
-            deck).optimize
+            deck)
 
           // player 1 perde last in-game
           case (true, 1) => Status(
@@ -218,7 +218,7 @@ case class Status(
             won1Cards,
             None,
             trump,
-            Vector()).optimize
+            Vector())
 
           // player 1 perde in-game
           case (true, _) => Status(
@@ -229,7 +229,7 @@ case class Status(
             won1Cards,
             None,
             trump,
-            deck.drop(2)).optimize
+            deck.drop(2))
 
           // player 1 vince in finale
           case (false, 0) => Status(
@@ -240,7 +240,7 @@ case class Status(
             won1Cards + card + played.get,
             None,
             trump,
-            deck).optimize
+            deck)
 
           // player 1 vince last in-game
           case (false, 1) => Status(
@@ -251,7 +251,7 @@ case class Status(
             won1Cards + card + played.get,
             None,
             trump,
-            Vector()).optimize
+            Vector())
 
           // player 1 vince in-game
           case (false, _) => Status(
@@ -262,40 +262,102 @@ case class Status(
             won1Cards + card + played.get,
             None,
             trump,
-            deck.drop(2)).optimize
+            deck.drop(2))
         }
     }
+
+  private object CardState extends Enumeration {
+    val Player = Value
+    val Opposite = Value
+    val Won = Value
+    val Lost = Value
+    val Played = Value
+    val Trump = Value
+    val Deck = Value
+  }
+
+  /**
+   * Return the optimized card List
+   */
+  private def cardList: IndexedSeq[Int] = {
+    val list = playerCards.map(_ -> CardState.Player).toList :::
+      oppositeCards.toList.map(_ -> CardState.Opposite).toList :::
+      wonCards.map(_ -> CardState.Won).toList :::
+      lostCards.map(_ -> CardState.Lost).toList :::
+      deck.map(_ -> CardState.Deck).toList :::
+      played.map(_ -> CardState.Played).toList :::
+      (if (deck.isEmpty) List() else List(trump -> CardState.Trump))
+    val optim = optimize(list)
+    optim.foldLeft((0 to 39).toIndexedSeq) { case (map, (card, value)) => map.updated(card.id, value.id) }
+  }
 
   /**
    *
    */
-  def optimize: Status = this
+  private def optimize(list: List[(Card, CardState.Value)]): List[(Card, CardState.Value)] = {
+    // Filter seed only cards
+    val seedsOnly = list.filterNot {
+      case (card, state) => card.isTrump
+    }
+    // Group them by seed
+    val bySeed = seedsOnly.groupBy {
+      case (card, _) => card.seed
+    }
+    // Group each seed by status and count the cards 
+    val byStatus = bySeed.map {
+      case (seed, list) =>
+        val map = (list.groupBy {
+          case (card, status) => status
+        })
+        val mapCount = map.map {
+          case (status, list) => (status -> list.size)
+        }
+        (seed, mapCount)
+    }
+
+    def compare(
+      mapA: Map[CardState.Value, Int],
+      mapB: Map[CardState.Value, Int],
+      order: List[CardState.Value]): Boolean =
+      if (order.isEmpty)
+        false
+      else {
+        val diff = mapA.getOrElse(order.head, 0) - mapB.getOrElse(order.head, 0)
+        if (diff < 0) true
+        else if (diff > 0) false
+        else
+          compare(mapA, mapB, order.tail)
+      }
+
+    // Sort the seed 
+    val sortedSeed = byStatus.toList.sortWith {
+      case ((seedA, mapA), (seedB, mapB)) =>
+        compare(mapA,
+          mapB,
+          List(CardState.Deck,
+            CardState.Won,
+            CardState.Lost,
+            CardState.Player,
+            CardState.Opposite))
+    }
+    val sorted = sortedSeed.map {
+      case (seed, _) => seed
+    }
+
+    //Substitue
+    list.filter { case (card, state) => card.isTrump } ::: (for (i <- 0 to 2) yield {
+      seedsOnly.filter {
+        case (card, _) => card.seed == sorted(i)
+      }.map {
+        case (card, status) => (new Card(card.figure, Seed(i + 1)), status)
+      }
+    }).flatten.toList
+
+  }
 
   /**
    * Transform the status in int value
    */
-  def toRow: List[Int] = {
-    object CardState extends Enumeration {
-      val Player = Value
-      val Opposite = Value
-      val Won = Value
-      val Lost = Value
-      val Played = Value
-      val Trump = Value
-      val Deck = Value
-    }
-
-    val cardStatus =
-      playerCards.toList.map(c => (c.id, CardState.Player.id)) :::
-        oppositeCards.toList.map(c => (c.id, CardState.Opposite.id)) :::
-        wonCards.toList.map(c => (c.id, CardState.Won.id)) :::
-        lostCards.toList.map(c => (c.id, CardState.Lost.id)) :::
-        deck.toList.map(c => (c.id, CardState.Deck.id)) :::
-        played.toList.map(c => (c.id, CardState.Played.id)) :::
-        (if (deck.isEmpty) List() else List((trump.id, CardState.Trump.id)))
-
-    val map = cardStatus.foldLeft((0 to 39).toIndexedSeq) { case (map, (idx, value)) => map.updated(idx, value) }
-
-    (if (player0Turn) 1 else 0) :: player0Score :: player1Score :: trump.id :: map.toList
-  }
+  def toRow: List[Int] =
+    (if (player0Turn) 1 else 0) :: player0Score :: player1Score :: trump.id :: cardList.toList
 }

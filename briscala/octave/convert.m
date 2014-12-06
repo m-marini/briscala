@@ -19,15 +19,39 @@ function Z = hide(X, trump)
 	endif
 endfunction
 
-function Z = transform(X)
+function F = cardFeatures(X)
 	[m n] = size(X);
-	Z = zeros(m, 43);
+	Z = zeros(m, 40);
+	F = zeros(m, 7 * 40) ;
 	for i = 1 : m
-		Cards = X( i, 5 : end);
-		Z(i, 1) = count( Cards, X(i, 1) );
-		Z(i, 2 : 3) = X(i, 2 : 3);
-		Z(i, 4 : end) = hide(Cards, X(i, 4));
+		Cards = X( i, 6 : end);
+		Z(i, : ) = hide(Cards, X(i, 5));
+	endfor
+	for i = 1 : m
+		for j = 0 : 39
+			F(i, 1 + j * 7 + Z(i, j + 1)) = 1;
+		endfor
 	endfor
 endfunction
 
-out = transform(briscola)
+function F = actionFeatures(X)
+	[m n] = size(X);
+	F = zeros(m, 3)
+	for i = 1 : m
+		Cards = X( i, 6 : end);
+		idx = count( Cards, X(i, 1) );
+		if (idx > 0)
+			F(i, idx) = 1;
+		endif
+	endfor
+endfunction
+
+function R = rewards(X)
+	R = X(: ,2 : 4);
+endfunction
+
+CF = cardFeatures(briscola);
+
+AF = actionFeatures(briscola)
+
+R = rewards(briscola)

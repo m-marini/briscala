@@ -3,37 +3,84 @@ package org.mmarini.briscala
 import org.scalatest._
 import sun.security.jgss.krb5.InitSecContextToken
 import scala.collection.immutable.Vector
+import scala.collection.immutable.Map
 
 class StatusTest extends FunSpec with Matchers {
 
   describe("A Status") {
-    describe("with an ace and a three won") {
-      it("should have player score 11 + 10") {
-        val status = Status(
-          true,
-          IndexedSeq(),
-          IndexedSeq(),
-          Set(Card(Figure.Ace, Seed.Seed1), Card(Figure.Three, Seed.Seed1)),
-          Set(),
-          None,
-          new Card(0),
-          Vector())
-        status.player0Score should be(21)
+
+    describe("when have an ace and a king lost and an ace and a three won") {
+      val status = Status(
+        true,
+        IndexedSeq(),
+        IndexedSeq(),
+        Set(Card(Figure.Ace, Seed.Seed2), Card(Figure.Three, Seed.Seed2)),
+        Set(Card(Figure.Ace, Seed.Seed1), Card(Figure.King, Seed.Seed1)),
+        None,
+        new Card(0),
+        Vector())
+
+      it("should have player score 11 + 10") { status.player0Score should be(21) }
+      it("should have opposite score 11 + 4") { status.player1Score should be(15) }
+    }
+
+    describe("when have unsorted deck list") {
+      val status = Status(
+        true,
+        (1 to 3).map(new Card(_)),
+        (4 to 6).map(new Card(_)),
+        List(29, 38, 39).map(new Card(_)).toSet,
+        Set(),
+        None,
+        new Card(0),
+        ((7 to 28) ++ (30 to 37)).map(new Card(_)).toIndexedSeq)
+      it("should sort the outage row") {
+        status.toRow.drop(4) should be(
+          5 :: 0 :: 0 :: 0 :: 1 :: 1 :: 1 :: 6 :: 6 :: 6 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 :: 2 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 ::
+            List())
       }
     }
 
-    describe("with an ace and a king lost") {
-      it("should have opposite score 11 + 4") {
-        val status = Status(
-          true,
-          IndexedSeq(),
-          IndexedSeq(),
-          Set(),
-          Set(Card(Figure.Ace, Seed.Seed1), Card(Figure.King, Seed.Seed1)),
-          None,
-          new Card(0),
-          Vector())
-        status.player1Score should be(15)
+    describe("when have unsorted won list") {
+      val status = Status(
+        true,
+        (1 to 3).map(new Card(_)),
+        (4 to 6).map(new Card(_)),
+        List(17, 18, 19, 27, 28, 37).map(new Card(_)).toSet,
+        List(29, 38, 39).map(new Card(_)).toSet,
+        None,
+        new Card(0),
+        ((7 to 16) ++ (20 to 26) ++ (30 to 36)).map(new Card(_)).toIndexedSeq)
+      it("should sort the outage row") {
+        status.toRow.drop(4) should be(
+          5 :: 0 :: 0 :: 0 :: 1 :: 1 :: 1 :: 6 :: 6 :: 6 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 :: 3 :: 3 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 :: 2 :: 3 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 :: 2 :: 2 ::
+            List())
+      }
+    }
+
+    describe("when have unsorted lost list") {
+      val status = Status(
+        true,
+        (1 to 3).map(new Card(_)),
+        List(28, 38, 39).map(new Card(_)).toIndexedSeq,
+        List(16, 17, 26, 27, 36, 37).map(new Card(_)).toSet,
+        List(18, 19, 29).map(new Card(_)).toSet,
+        None,
+        new Card(0),
+        ((4 to 15) ++ (20 to 25) ++ (30 to 35)).map(new Card(_)).toIndexedSeq)
+      it("should sort the outage row") {
+        status.toRow.drop(4) should be(
+          5 :: 0 :: 0 :: 0 :: 6 :: 6 :: 6 :: 6 :: 6 :: 6 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 :: 2 :: 1 :: 1 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 :: 2 :: 1 :: 3 ::
+            6 :: 6 :: 6 :: 6 :: 6 :: 6 :: 2 :: 2 :: 3 :: 3 ::
+            List())
       }
     }
   }
