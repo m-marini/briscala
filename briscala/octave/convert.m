@@ -36,7 +36,7 @@ endfunction
 
 function F = actionFeatures(X)
 	[m n] = size(X);
-	F = zeros(m, 3)
+	F = zeros(m, 3);
 	for i = 1 : m
 		Cards = X( i, 6 : end);
 		idx = count( Cards, X(i, 1) );
@@ -52,6 +52,6 @@ endfunction
 
 CF = cardFeatures(briscola);
 
-AF = actionFeatures(briscola)
+AF = actionFeatures(briscola);
 
-R = rewards(briscola)
+R = rewards(briscola);

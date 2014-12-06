@@ -4,6 +4,7 @@
 package org.mmarini.briscala
 
 import scala.util.Random
+import scala.collection.immutable.Map
 
 /**
  * @author us00852
@@ -277,26 +278,22 @@ case class Status(
   }
 
   /**
-   * Return the optimized card List
+   * Return the list of card and state
    */
-  private def cardList: IndexedSeq[Int] = {
-    val list = playerCards.map(_ -> CardState.Player).toList :::
-      oppositeCards.toList.map(_ -> CardState.Opposite).toList :::
-      wonCards.map(_ -> CardState.Won).toList :::
-      lostCards.map(_ -> CardState.Lost).toList :::
-      deck.map(_ -> CardState.Deck).toList :::
-      played.map(_ -> CardState.Played).toList :::
-      (if (deck.isEmpty) List() else List(trump -> CardState.Trump))
-    val optim = optimize(list)
-    optim.foldLeft((0 to 39).toIndexedSeq) { case (map, (card, value)) => map.updated(card.id, value.id) }
-  }
+  private lazy val cardList: List[(Card, CardState.Value)] = playerCards.map(_ -> CardState.Player).toList :::
+    oppositeCards.toList.map(_ -> CardState.Opposite).toList :::
+    wonCards.map(_ -> CardState.Won).toList :::
+    lostCards.map(_ -> CardState.Lost).toList :::
+    deck.map(_ -> CardState.Deck).toList :::
+    played.map(_ -> CardState.Played).toList :::
+    (if (deck.isEmpty) List() else List(trump -> CardState.Trump))
 
   /**
-   *
+   * Return the optimizer seed smap
    */
-  private def optimize(list: List[(Card, CardState.Value)]): List[(Card, CardState.Value)] = {
+  private lazy val seedMap: Map[Seed.Value, Seed.Value] = {
     // Filter seed only cards
-    val seedsOnly = list.filterNot {
+    val seedsOnly = cardList.filterNot {
       case (card, state) => card.isTrump
     }
     // Group them by seed
@@ -344,20 +341,28 @@ case class Status(
       case (seed, _) => seed
     }
 
-    //Substitue
-    list.filter { case (card, state) => card.isTrump } ::: (for (i <- 0 to 2) yield {
-      seedsOnly.filter {
-        case (card, _) => card.seed == sorted(i)
-      }.map {
-        case (card, status) => (new Card(card.figure, Seed(i + 1)), status)
-      }
-    }).flatten.toList
-
+    (for { i <- 0 to 2 } yield (sorted(i) -> Seed(i + 1))).toMap + (Seed.Trump -> Seed.Trump)
   }
+
+  /**
+   * Return the optimizeds card map
+   */
+  private def cardMap: IndexedSeq[Int] = {
+    cardList.map {
+      case (card, state) => (optimizedCard(card), state)
+    }.foldLeft((0 to 39).toIndexedSeq) {
+      case (map, (card, value)) => map.updated(card.id, value.id)
+    }
+  }
+
+  /**
+   *
+   */
+  def optimizedCard(card: Card): Card = Card(card.figure, seedMap(card.seed))
 
   /**
    * Transform the status in int value
    */
   def toRow: List[Int] =
-    (if (player0Turn) 1 else 0) :: player0Score :: player1Score :: trump.id :: cardList.toList
+    (if (player0Turn) 1 else 0) :: player0Score :: player1Score :: trump.id :: cardMap.toList
 }
