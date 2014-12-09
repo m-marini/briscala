@@ -25,6 +25,10 @@ episodeId(endEpisodeIndex(end) :end) = n;
 ntr = round(n * p_train / (p_train + p_valid + p_test));
 nv = round(n * p_valid / (p_train + p_valid + p_test));
 
+printf("Training set of %d episodes\n", ntr);
+printf("Validation set of %d episodes\n", nv);
+printf("Test set of %d episodes\n", n - ntr - nv);
+
 Train  = X(find(episodeId <= ntr), : );
 Valid  = X(find(episodeId > ntr & episodeId <= (nv+ntr)), : );
 Test  = X(find(episodeId > (nv+ntr)), : );
