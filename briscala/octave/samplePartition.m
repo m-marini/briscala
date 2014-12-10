@@ -1,5 +1,5 @@
 function [Train, Valid, Test] = samplePartition(X, p_train, p_valid, p_test)
-%NNCOST Implements the partition of samples into 3 subset
+%samplePartition Implements the partition of samples into 3 subset
 % the training set, the validation set and the test set.
 %   [Train, Valid, Test] = samplePartition(X, p_train, p_valid, p_test)
 % Divide the X sample set into three subset with number of episode proportional to the parameters
