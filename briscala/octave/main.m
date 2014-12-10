@@ -1,5 +1,11 @@
+function main(id) 
 % Load dataset
-clear all;
+
+printf("Loading dataset ...\n");
+
+filename = sprintf("best-%d-%6.6d.mat", id, floor(rand() * 1000000));
+printf("Result file = %s\n", filename);
+
 load "test.mat";
 
 % ------------------------------------------
@@ -33,7 +39,6 @@ mlambda = log(maxLambda/ minLambda);
 qnh = log(minNoHidden);
 mnh = log(maxNoHidden / minNoHidden);
 
-filename = sprintf("best-%s.mat", strftime ("%Y%m%d-%H%M%S", localtime (time ())));
 
 % Randomize initial values    
 for i = 1 : 1000
@@ -84,3 +89,4 @@ for i = 1 : 1000
 
     endif
 endfor
+endfunction
