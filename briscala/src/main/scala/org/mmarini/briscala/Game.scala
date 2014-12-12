@@ -23,7 +23,7 @@ object Game {
     val deck = Deck.shuffle(random)
     val Some(trump) = deck.drop(6).find(_.isTrump)
     Status(
-      random.nextBoolean,
+      true,
       deck.take(3),
       deck.drop(3).take(3),
       Set(),

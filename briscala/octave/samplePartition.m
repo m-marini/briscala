@@ -18,7 +18,7 @@ n = size(endEpisodeIndex,1);
 
 % for each episode assign the ordinal number
 for i = 1 : n - 1
-  episodeId(endEpisodeIndex(i) : endEpisodeIndex(i + 1) - 1) = i;
+	  episodeId(endEpisodeIndex(i) : endEpisodeIndex(i + 1) - 1) = i;
 endfor
 episodeId(endEpisodeIndex(end) :end) = n;
 
