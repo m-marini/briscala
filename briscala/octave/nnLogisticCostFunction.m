@@ -1,4 +1,4 @@
-function [J grad] = nnCostFunction(nn_params, ...
+function [J grad] = nnLogisticCostFunction(nn_params, ...
                                    noHiddens, ...
                                    X, Y, lambda)
 %NNCOST Implements the neural network cost function for a two layer
@@ -34,30 +34,35 @@ W2_grad = zeros(size(W2));
 % W2 = n3 by (n2 + 1)
 
 % A1 ? m by n1 + 1
-A1 = [ ones(m, 1) X ];
+X1 = [ ones(m, 1) X ];
 
 % Z2 = m by n2
-Z2 = A1 * W1';
+Z2 = X1 * W1';
 
 % A2 = m by n2+1
-A2 = [ ones(m, 1) sigmoid(Z2) ];
+A2 = sigmoid(Z2);
+X2 = [ ones(m, 1) A2];
 
 %A3 = m by n3+1
-A3 = A2 * W2';
+Z3 = X2 * W2';
+A3 = sigmoid(Z3);
 
 % Delta3 = m by n3
 Delta3 = A3 - Y;
-
 J = (sum(sum( Delta3 .^2 )) + (sum(sum(W1(:, 2 : end) .^ 2)) + sum(sum(W2(:, 2 : end) .^ 2))) * lambda) / 2 / m;
 
-% W2_grad = n3 by n2 + 1
-W2_grad = Delta3' * A2 / m;
+% Delta2 = m by n2 + 1
+DZ3 = Delta3 .* A3 .* (1 - A3);
 
-% Delta2 = m by n2
-Delta2 = ( (Delta3 * W2) .* A2 .* (1 - A2) )( : , 2 : end);
+% W2_grad = n3 by n2 + 1
+W2_grad = DZ3' * X2 / m;
+
+% Delta2 = m by n1 + 1
+Delta2 = DZ3 * W2(:, 2 : end);
+DZ2 = Delta2 .* A2 .* (1 - A2);
 
 % W2_grad = n2 by n1 + 1
-W1_grad = Delta2' * A1 / m;
+W1_grad = DZ2' * X1 / m;
 
 W2_grad(:, 2 : end) += lambda / m * W2 (:, 2 :end);
 W1_grad(:, 2 : end) += lambda / m * W1 (:, 2 :end);

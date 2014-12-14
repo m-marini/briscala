@@ -1,10 +1,9 @@
-function Y = nnPredict(X, ...
-	          nn_params, ...
-                                   noHiddens,
-                                   noOutputs)
-%NNCOST Implements the neural network cost function for a two layer
+function [J grad] = nnRegressionCostFunction(nn_params, ...
+                                   noHiddens, ...
+                                   X, Y, lambda)
+%nnRegressionCostFunction Implements the neural network cost function for a two layer
 %neural network which performs regression
-%   [J grad] = NNCOSTFUNCTON(nn_params, n1, n2, n3, X, y, lambda)
+%   [J grad] = nnRegressionCostFunction(nn_params, noHiddens, X, Y, lambda)
 %   computes the cost and gradient of the neural network. The
 %   parameters for the neural network are "unrolled" into the vector
 %   nn_params and need to be converted back into the weight matrices. 
@@ -17,8 +16,7 @@ function Y = nnPredict(X, ...
 % for our 2 layer neural network
 [m, n1] = size(X);
 n2 = noHiddens;
-n3 = noOutputs;
-
+n3 = size(Y, 2);
 
 W1 = reshape(nn_params(1:n2 * (n1 + 1)), n2, (n1 + 1));
 W2 = reshape(nn_params((1 + (n2 * (n1 + 1))):end), n3, (n2 + 1));
@@ -44,7 +42,27 @@ Z2 = A1 * W1';
 % A2 = m by n2+1
 A2 = [ ones(m, 1) sigmoid(Z2) ];
 
-%A3 = m by n3
-Y = sigmoid(A2 * W2');
+%A3 = m by n3+1
+A3 = A2 * W2';
 
-endfunction
+% Delta3 = m by n3
+Delta3 = A3 - Y;
+
+J = (sum(sum( Delta3 .^2 )) + (sum(sum(W1(:, 2 : end) .^ 2)) + sum(sum(W2(:, 2 : end) .^ 2))) * lambda) / 2 / m;
+
+% W2_grad = n3 by n2 + 1
+W2_grad = Delta3' * A2 / m;
+
+% Delta2 = m by n2
+Delta2 = ( (Delta3 * W2) .* A2 .* (1 - A2) )( : , 2 : end);
+
+% W2_grad = n2 by n1 + 1
+W1_grad = Delta2' * A1 / m;
+
+W2_grad(:, 2 : end) += lambda / m * W2 (:, 2 :end);
+W1_grad(:, 2 : end) += lambda / m * W1 (:, 2 :end);
+	
+% Unroll gradients
+grad = [W1_grad(:) ; W2_grad(:)];
+
+end

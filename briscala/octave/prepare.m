@@ -19,9 +19,9 @@ load("-ascii", inFile);
 % Partition samples
 [Train, Valid, Test] = samplePartition(briscola, trainingPref, validationPref, testPref);
 
-[X, Y] = convert(Train, gamma);
-[XV, YV] = convert(Valid, gamma);
-[XT, YT] = convert(Test, gamma);
+[X, Y] = toFeatures(Train);
+[XV, YV] = toFeatures(Valid);
+[XT, YT] = toFeatures(Test);
 
 save (outFile, "X", "Y", "XV", "YV", "XT", "YT");
 
