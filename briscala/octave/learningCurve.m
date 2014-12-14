@@ -1,7 +1,12 @@
-function learningCurve(from, to, step)
+function learningCurve(to, step)
+% learningCurve applies the learning algorithm, computes the error for training set and validation set
+% for different sample set size specified by parameters
+% to the last sample size
+% step the step of each sample size
+
 % Load dataset
 
-printf("Loading dataset ...\n");
+printf("Load dataset ...\n");
 load -ascii "../briscola.mat";
 
 ep= find(briscola(:, 1) == -1);
@@ -9,21 +14,23 @@ ep= find(briscola(:, 1) == -1);
 me = size(ep,1);
 to = min(to, me);
 
-M = from : step: to;
-E = zeros(size(M,1), 2);
+EpisodeSize = step : step: to;
+n = length(EpisodeSize);
 
 lambda = 0;
-s2 = 2;
+s2 = 80;
 
-for i = 1 : length(M)
+StepSize = (ep(EpisodeSize)) - 1;
+
+E = zeros(n, 2);
+
+for i = 1 : n
 	
 	% Partition samples
-	[Train, Valid, Test] = samplePartition(briscola( 1 : ep(M(i)), :), 60, 40, 0);
+	[Train, Valid, Test] = samplePartition(briscola( 1 : StepSize(i), :), 60, 40, 0);
 
-	% gamma = return discount rate
-	gamma = 0.965936;
-	[X, Y] = convert(Train, gamma);
-	[XV, YV] = convert(Valid, gamma);
+	[X, Y] = toFeatures(Train);
+	[XV, YV] = toFeatures(Valid);
 
 	options = optimset('MaxIter', 100);
 
@@ -33,10 +40,12 @@ for i = 1 : length(M)
 	epsilon = sqrt( 6 / (s1 + s2) );
 	np = (s1 + 1) * s2 + (s2 + 1) * s3;
 
-	costFunction = @(p) nnCostFunction(p, s2, X, Y, lambda);
+	costFunction = @(p) nnLogisticCostFunction(p, s2, X, Y, lambda);
 	[params, cost] = fmincg(costFunction, rand(np, 1) * 2 * epsilon - epsilon, options);
 
-	E(i, : ) = [ errorFunction(X, Y, params, s2), errorFunction(XV, YV, params, s2) ];
+	E(i, : ) = [ errorFunction(X, Y, params, s2)  errorFunction(XV, YV, params, s2) ];
 endfor
 
-plot(M, E);
+plot(EpisodeSize, E(:, 1), ";Training error;", EpisodeSize, E(:, 2), ";Valdation error;");
+
+endfunction

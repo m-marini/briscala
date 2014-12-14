@@ -45,6 +45,6 @@ Z2 = A1 * W1';
 A2 = [ ones(m, 1) sigmoid(Z2) ];
 
 %A3 = m by n3
-Y = A2 * W2';
+Y = sigmoid(A2 * W2');
 
 endfunction
