@@ -9,18 +9,10 @@ function [Train, Valid, Test] = samplePartition(X, p_train, p_valid, p_test)
 
 m = size(X, 1);
 
-episodeId = zeros(m, 1);
-
 % Find indexes of episode ends
-endEpisodeIndex  = find(X(:, 1) == -1 == 1);
+endEpisodeIndex  = find(X(:, 1) == -1);
 
 n = size(endEpisodeIndex,1);
-
-% for each episode assign the ordinal number
-for i = 1 : n - 1
-	  episodeId(endEpisodeIndex(i) : endEpisodeIndex(i + 1) - 1) = i;
-endfor
-episodeId(endEpisodeIndex(end) :end) = n;
 
 ntr = round(n * p_train / (p_train + p_valid + p_test));
 nv = round(n * p_valid / (p_train + p_valid + p_test));
@@ -29,7 +21,7 @@ printf("Training set of %d episodes\n", ntr);
 printf("Validation set of %d episodes\n", nv);
 printf("Test set of %d episodes\n", n - ntr - nv);
 
-Train  = X(find(episodeId <= ntr), : );
-Valid  = X(find(episodeId > ntr & episodeId <= (nv+ntr)), : );
-Test  = X(find(episodeId > (nv+ntr)), : );
+Train  = X(1 : endEpisodeIndex(ntr + 1) - 1, : );
+Valid  = X(endEpisodeIndex(ntr + 1) : endEpisodeIndex(ntr + nv + 1) - 1, : );
+Test  = X(endEpisodeIndex(ntr + nv + 1) : end, : );
 endfunction

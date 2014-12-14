@@ -24,6 +24,8 @@ StepSize = (ep(EpisodeSize)) - 1;
 
 E = zeros(n, 2);
 
+options = optimset('MaxIter', 50);
+
 for i = 1 : n
 	
 	% Partition samples
@@ -31,8 +33,6 @@ for i = 1 : n
 
 	[X, Y] = toFeatures(Train);
 	[XV, YV] = toFeatures(Valid);
-
-	options = optimset('MaxIter', 100);
 
 	s1 = size(X, 2);
 	s3 = size(Y, 2);
