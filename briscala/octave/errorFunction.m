@@ -1,7 +1,7 @@
-function err = errorFunction(X, Y, parms, noHidden)
+function err = errorFunction(X, Y, W1, W2)
 
-[m, n] =  size(Y);
-Yp = nnPredict(X, parms, noHidden, n);
-err = sqrt(sum(sum((Yp - Y) .^ 2)) / m );
+m =  size(X, 1);
+YP = nnPredict(X, W1, W2);
+err = sqrt(sum(sum((YP - Y) .^ 2)) / m );
 
 endfunction

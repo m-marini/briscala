@@ -1,4 +1,4 @@
-function [J grad] = nnLogisticCostFunction(nn_params, ...
+function [J grad] = nnLogisticCostFunction(params, ...
                                    noHiddens, ...
                                    X, Y, lambda)
 %NNCOST Implements the neural network cost function for a two layer
@@ -18,8 +18,7 @@ function [J grad] = nnLogisticCostFunction(nn_params, ...
 n2 = noHiddens;
 n3 = size(Y, 2);
 
-W1 = reshape(nn_params(1:n2 * (n1 + 1)), n2, (n1 + 1));
-W2 = reshape(nn_params((1 + (n2 * (n1 + 1))):end), n3, (n2 + 1));
+[W1 W2] = rollParms(params, n1, n2, n3);
 
 % Setup some useful variables 
          
@@ -68,6 +67,6 @@ W2_grad(:, 2 : end) += lambda / m * W2 (:, 2 :end);
 W1_grad(:, 2 : end) += lambda / m * W1 (:, 2 :end);
 	
 % Unroll gradients
-grad = [W1_grad(:) ; W2_grad(:)];
+grad = unrollParms(W1_grad, W2_grad);
 
 end

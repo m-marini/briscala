@@ -1,5 +1,5 @@
 function AS = afterStates(S)
-% afterStatess filter the after states
+% afterStates filter the after states
 %
 
 %remove last state because it is an initial state
@@ -14,7 +14,7 @@ EE = find(S( : , 1) == -1);
 IE = EE - 1;
 IE = IE(IE > 0);
 
-% filter the afterstates m = size(S, 1);
+% filter the afterstates
 F = ones(size(S, 1),1);
 F(IE) = 0;
 AS = S(F != 0, : );

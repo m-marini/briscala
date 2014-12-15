@@ -4,13 +4,22 @@ function [X Y] = toFeatures(S)
 % gamma is the discount rate of rewards
 %
 
+% remove final
+S = removeFinal(S);
+
+% filter after states
+S = afterStates(S);
+
 % Split the episode regarding player 0 and player 1 perspectives
-S = split(afterStates(S));
+S = splitPlayers(S);
 
 % compute the card features
 X = cardFeatures(S); 
 
 % compute the return values
 Y = returns(S);
+
+% Compute state value
+[X Y] = stateValues(X, Y);
 
 endfunction

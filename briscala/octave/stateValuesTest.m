@@ -4,4 +4,7 @@ S = samplePartition(briscola, 2, 18 , 80);
 
 [X Y] = toFeatures(S);
 
-[X, Y] = statFeatures(X, Y);
+X(end + 1, : ) = X(end, :);
+Y(end + 1, : ) = !Y(end, :);
+
+[X, Y] = stateValues(X, Y);

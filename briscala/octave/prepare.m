@@ -4,25 +4,21 @@ function prepare()
 %   X, Y training features set, 
 %   XV, YV validation features set, 
 %   XT, YT test features set, 
-%  gamma = return discount rate
 
 inFile = "../briscola.mat";
 outFile = "test.mat";
 trainingPref = 60;
 validationPref = 20;
 testPref = 20;
-gamma = 0.965936;
 
 % Load dataset
 load("-ascii", inFile);
 
+[ X Y ] = toFeatures(briscola);
+	
 % Partition samples
-[Train, Valid, Test] = samplePartition(briscola, trainingPref, validationPref, testPref);
+[XL, YL, XV, YV, XT, YT] = samplePartition(X, Y, 60, 40, 0);
 
-[X, Y] = toFeatures(Train);
-[XV, YV] = toFeatures(Valid);
-[XT, YT] = toFeatures(Test);
-
-save (outFile, "X", "Y", "XV", "YV", "XT", "YT");
+save (outFile, "XL", "YL", "XV", "YV", "XT", "YT");
 
 endfunction

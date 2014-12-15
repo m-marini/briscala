@@ -1,6 +1,8 @@
-function Z = split(X)
+function Z = splitPlayers(X)
 % split implements the split of episode step between the player 0 afterstates
 % and the player 1 afterstates.
+
+% !!!!! CHECK FOR END STATE DUPLICATION !!!!!
 
 % the afterstates index of player 0 is the final state plus the state of player 1 turn
 idx0 = find(X( : , 1) == -1 | !X( : , 2));
