@@ -1,23 +1,24 @@
-function prepare() 
-% prepare implements the transformation of episode set into the training, validation and test feature set
-%   it reads the briscola.mat file and writes the results in test.mat file continins
-%   X, Y training features set, 
-%   XV, YV validation features set, 
-%   XT, YT test features set, 
-
-inFile = "../briscola.mat";
-outFile = "test.mat";
-trainingPref = 60;
-validationPref = 20;
-testPref = 20;
+function prepare(inFile = "../briscola.mat", outFile = "features.mat", trainingPref = 60, validationPref = 20, testPref = 20) 
+% prepare transforms episode set into the training, validation and test feature set.
+% The number of episode for each set is proportional to the relative preference parameters.
+%
+% prepare(inFile = "../briscola.mat", outFile = "features.mat", trainingPref = 60, validationPref = 20, testPref = 20) 
+%  inFile: input filename
+%  outFile: output filename
+%  trainingPref: preference for training set
+%  validationPref: preference for validation set
+%  testPref: preference for test set
 
 % Load dataset
-load("-ascii", inFile);
+printf("Loading %s ...\n", inFile);
+S = load("-ascii", inFile);
 
-[ X Y ] = toFeatures(briscola);
+printf("Converting to features ...\n", inFile);
+[ X Y ] = toFeatures(S);
 	
 % Partition samples
-[XL, YL, XV, YV, XT, YT] = samplePartition(X, Y, 60, 40, 0);
+printf("Partitioning samples ...\n", inFile);
+[XL, YL, XV, YV, XT, YT] = samplePartition(X, Y, trainingPref, validationPref, testPref);
 
 save (outFile, "XL", "YL", "XV", "YV", "XT", "YT");
 

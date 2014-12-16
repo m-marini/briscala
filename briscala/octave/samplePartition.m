@@ -20,11 +20,12 @@ printf("Validation set of %d samples\n", nv);
 printf("Test set of %d samples\n", m - ntr - nv);
 
 XL  = X(1 : ntr, : );
-XV  = X(ntr + 1 : ntr + nv, : );
-XT  = X(ntr + nv + 1 : end, : );
-
 YL  = Y(1 : ntr, : );
+
+XV  = X(ntr + 1 : ntr + nv, : );
 YV  = Y(ntr + 1 : ntr + nv, : );
+
+XT  = X(ntr + nv + 1 : end, : );
 YT  = Y(ntr + nv + 1 : end, : );
 
 endfunction

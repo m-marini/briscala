@@ -1,8 +1,15 @@
-function learningCurve(to, step, s2, lambda)
-% learningCurve applies the learning algorithm, computes the error for training set and validation set
-% for different sample set size specified by parameters
-% to the last sample size
-% step the step of each sample size
+function learningCurve(to, step, s2, s3, lambda = 0, nIter= 50)
+% learningCurve plots the learning curve for given samples size.
+% The learning curve shows the training error and validation error
+% for different number of samples.
+%
+% learningCurve(to, step, s2, s3, lambda = 0, nIter= 50)
+%  to: max number of episode number
+%  step: step increment of episode number
+%  s2: number of 1st hidden layer neurons
+%  s3: number of 2nd hidden  layer neurons
+%  lambda: regularization learning parameter
+%  nIter: number of learning iteration 
 
 % Load dataset
 
@@ -22,7 +29,7 @@ StepSize = (ep(EpisodeSize)) - 1;
 
 E = zeros(n, 2);
 
-options = optimset('MaxIter', 50);
+options = optimset('MaxIter', nIter);
 
 for i = 1 : n
 	printf("Processing %d episodes, %d steps ...\n", EpisodeSize(i), StepSize(i));
@@ -33,16 +40,16 @@ for i = 1 : n
 	[XL, YL, XV, YV, XT, YT] = samplePartition(X, Y, 60, 40, 0);
 
 	s1 = size(X, 2);
-	s3 = size(Y, 2);
+	s4 = size(Y, 2);
 
-	epsilon = sqrt( 6 / (s1 + s2) );
-	np = (s1 + 1) * s2 + (s2 + 1) * s3;
+	epsilon = sqrt( 6 / (s1 + s2 + s3) );
+	np = (s1 + 1) * s2 + (s2 + 1) * s3 + (s3 + 1) * s4;
 
-	costFunction = @(p) nnLogisticCostFunction(p, s2, XL, YL, lambda);
+	costFunction = @(p) nnLogisticCostFunction(p, s2, s3, XL, YL, lambda);
 	[params, cost] = fmincg(costFunction, rand(np, 1) * 2 * epsilon - epsilon, options);
 
-	[W1, W2] = rollParms(params, s1, s2, s3);
-	E(i, : ) = [ sqrt(cost(end) * 2)  errorFunction(XV, YV, W1, W2) ];
+	[W1 W2 W3] = rollParms(params, s1, s2, s3, s4);
+	E(i, : ) = [ sqrt(cost(end) * 2)  errorFunction(XV, YV, W1, W2, W3) ];
 endfor
 
 plot(EpisodeSize, E(:, 1), ";Training error;", EpisodeSize, E(:, 2), ";Valdation error;");
