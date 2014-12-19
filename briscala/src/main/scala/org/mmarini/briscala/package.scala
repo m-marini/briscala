@@ -21,4 +21,8 @@ package object briscala {
     val Three = Value("3")
     val Ace = Value("Ace")
   }
+
+  type StateValue = Map[IndexedSeq[Int], (Int, Int)]
+
+  type StateActionValue = Map[(Int, IndexedSeq[Int]), (Int, Int)]
 }

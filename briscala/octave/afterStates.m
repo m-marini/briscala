@@ -1,16 +1,17 @@
 function AS = afterStates(S)
-% afterStates filter the after states
+% afterStates filter the after states.
+% All initial states of  episode are not an afterstates
 %
+% AS = afterStates(S)
+%  S: the states
 
 %remove last state because it is an initial state
 S = S(1 : end - 1, :);
 
-% the initial state of an episode is not an afterstate so remove all of them from set
 % find end episodes
-
 EE = find(S( : , 1) == -1);
 
-%compute the initial state indexes
+% The previous index of an end state is an initial state index
 IE = EE - 1;
 IE = IE(IE > 0);
 

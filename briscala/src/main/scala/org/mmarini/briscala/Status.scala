@@ -269,100 +269,106 @@ case class Status(
 
   private object CardState extends Enumeration {
     val Player = Value
-    val Opposite = Value
     val Won = Value
     val Lost = Value
     val Played = Value
     val Trump = Value
-    val Deck = Value
+    val Unknown = Value
   }
-
-  /**
-   * Return the list of card and state
-   */
-  private lazy val cardList: List[(Card, CardState.Value)] = playerCards.map(_ -> CardState.Player).toList :::
-    oppositeCards.toList.map(_ -> CardState.Opposite).toList :::
-    wonCards.map(_ -> CardState.Won).toList :::
-    lostCards.map(_ -> CardState.Lost).toList :::
-    deck.map(_ -> CardState.Deck).toList :::
-    played.map(_ -> CardState.Played).toList :::
-    (if (deck.isEmpty) List() else List(trump -> CardState.Trump))
 
   /**
    * Return the optimizer seed smap
    */
-  private lazy val seedMap: Map[Seed.Value, Seed.Value] = {
-    // Filter seed only cards
-    val seedsOnly = cardList.filterNot {
-      case (card, state) => card.isTrump
-    }
-    // Group them by seed
-    val bySeed = seedsOnly.groupBy {
-      case (card, _) => card.seed
-    }
-    // Group each seed by status and count the cards 
-    val byStatus = bySeed.map {
-      case (seed, list) =>
-        val map = (list.groupBy {
-          case (card, status) => status
-        })
-        val mapCount = map.map {
-          case (status, list) => (status -> list.size)
-        }
-        (seed, mapCount)
-    }
-
-    def compare(
-      mapA: Map[CardState.Value, Int],
-      mapB: Map[CardState.Value, Int],
-      order: List[CardState.Value]): Boolean =
-      if (order.isEmpty)
-        false
-      else {
-        val diff = mapA.getOrElse(order.head, 0) - mapB.getOrElse(order.head, 0)
-        if (diff < 0) true
-        else if (diff > 0) false
-        else
-          compare(mapA, mapB, order.tail)
-      }
-
-    // Sort the seed 
-    val sortedSeed = byStatus.toList.sortWith {
-      case ((seedA, mapA), (seedB, mapB)) =>
-        compare(mapA,
-          mapB,
-          List(CardState.Deck,
-            CardState.Won,
-            CardState.Lost,
-            CardState.Player,
-            CardState.Opposite))
-    }
-    val sorted = sortedSeed.map {
-      case (seed, _) => seed
-    }
-
-    (for { i <- 0 to 2 } yield (sorted(i) -> Seed(i + 1))).toMap + (Seed.Trump -> Seed.Trump)
-  }
-
-  /**
-   * Return the optimizeds card map
-   */
-  private def cardMap: IndexedSeq[Int] = {
-    cardList.map {
-      case (card, state) => (optimizedCard(card), state)
-    }.foldLeft((0 to 39).toIndexedSeq) {
-      case (map, (card, value)) => map.updated(card.id, value.id)
-    }
-  }
+  //  private lazy val seedMap: Map[Seed.Value, Seed.Value] = {
+  //    // Filter seed only cards
+  //    val seedsOnly = cardList.filterNot {
+  //      case (card, state) => card.isTrump
+  //    }
+  //    // Group them by seed
+  //    val bySeed = seedsOnly.groupBy {
+  //      case (card, _) => card.seed
+  //    }
+  //    // Group each seed by status and count the cards 
+  //    val byStatus = bySeed.map {
+  //      case (seed, list) =>
+  //        val map = (list.groupBy {
+  //          case (card, status) => status
+  //        })
+  //        val mapCount = map.map {
+  //          case (status, list) => (status -> list.size)
+  //        }
+  //        (seed, mapCount)
+  //    }
+  //
+  //    def compare(
+  //      mapA: Map[CardState.Value, Int],
+  //      mapB: Map[CardState.Value, Int],
+  //      order: List[CardState.Value]): Boolean =
+  //      if (order.isEmpty)
+  //        false
+  //      else {
+  //        val diff = mapA.getOrElse(order.head, 0) - mapB.getOrElse(order.head, 0)
+  //        if (diff < 0) true
+  //        else if (diff > 0) false
+  //        else
+  //          compare(mapA, mapB, order.tail)
+  //      }
+  //
+  //    // Sort the seed 
+  //    val sortedSeed = byStatus.toList.sortWith {
+  //      case ((seedA, mapA), (seedB, mapB)) =>
+  //        compare(mapA,
+  //          mapB,
+  //          List(CardState.Deck,
+  //            CardState.Won,
+  //            CardState.Lost,
+  //            CardState.Player,
+  //            CardState.Opposite))
+  //    }
+  //    val sorted = sortedSeed.map {
+  //      case (seed, _) => seed
+  //    }
+  //
+  //    (for { i <- 0 to 2 } yield (sorted(i) -> Seed(i + 1))).toMap + (Seed.Trump -> Seed.Trump)
+  //  }
 
   /**
    *
    */
-  def optimizedCard(card: Card): Card = Card(card.figure, seedMap(card.seed))
+  //  def optimizedCard(card: Card): Card = Card(card.figure, seedMap(card.seed))
 
   /**
-   * Transform the status in int value
+   *
    */
-  def toRow: List[Int] =
-    (if (player0Turn) 1 else 0) :: player0Score :: player1Score :: trump.id :: cardMap.toList
+  private def optimize(s: IndexedSeq[CardState.Value]): IndexedSeq[CardState.Value] = {
+    s
+  }
+
+  /**
+   * Transform the status in int value masked to match the player perspective
+   *
+   */
+  def toRow(player0: Boolean): IndexedSeq[Int] =
+    optimize(cardSeq(player0)).map(_.id)
+
+  /**
+   * Return the list of card and state
+   */
+  private def cardSeq(player0: Boolean): IndexedSeq[CardState.Value] = {
+    val s0 = played.foldLeft((0 to 39).map(_ => CardState.Unknown))((s, card) => s.updated(card.id, CardState.Played))
+    val s1 = if (deck.isEmpty)
+      s0
+    else
+      s0.updated(trump.id, CardState.Trump)
+
+    if (player0) {
+      val s2 = player0Cards.foldLeft(s1)((s, card) => s.updated(card.id, CardState.Player))
+      val s4 = won0Cards.foldLeft(s2)((s, card) => s.updated(card.id, CardState.Won))
+      won1Cards.foldLeft(s4)((s, card) => s.updated(card.id, CardState.Lost))
+    } else {
+      val s3 = player1Cards.foldLeft(s1)((s, card) => s.updated(card.id, CardState.Player))
+      val s4 = won0Cards.foldLeft(s3)((s, card) => s.updated(card.id, CardState.Lost))
+      won1Cards.foldLeft(s4)((s, card) => s.updated(card.id, CardState.Won))
+    }
+  }
 }
