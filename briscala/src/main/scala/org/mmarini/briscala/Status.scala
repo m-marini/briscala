@@ -266,15 +266,6 @@ case class Status(
         }
     }
 
-  private object CardState extends Enumeration {
-    val Player = Value
-    val Won = Value
-    val Lost = Value
-    val Played = Value
-    val Trump = Value
-    val Unknown = Value
-  }
-
   /**
    * Return the optimizer seed map
    */
@@ -330,10 +321,14 @@ case class Status(
   /**
    *
    */
-  private def optimize(s: Map[Card, CardState.Value]): Map[Card, CardState.Value] = {
-    val map = seedMap(s);
-    s.map {
-      case (card, state) => (Card(card.figure, map(card.seed)) -> state)
+  private def mapCard(seedMap: (Seed.Value) => Seed.Value)(card: Card): Card = Card(card.figure, seedMap(card.seed))
+
+  /**
+   *
+   */
+  private def optimize(seedMap: (Seed.Value) => Seed.Value)(cardMap: Map[Card, CardState.Value]): Map[Card, CardState.Value] = {
+    cardMap.map {
+      case (card, state) => mapCard(seedMap)(card) -> state
     }
   }
 
@@ -341,9 +336,21 @@ case class Status(
    * Transform the status in int value masked to match the player perspective
    *
    */
-  def toRow(player0: Boolean): IndexedSeq[Int] = {
-    val states = optimize(cardSeq(player0))
-    (0 to 39).map(i => states(new Card(i)).id)
+  def toRow(player0: Boolean)(): (IndexedSeq[CardState.Value]) = {
+    val seq = cardSeq(player0)
+    Deck.sorted.map(optimize(seedMap(seq))(seq))
+  }
+
+  /**
+   * Transform the status in int value masked to match the player perspective
+   *
+   */
+  def toRow(player0: Boolean, choice: Int): (IndexedSeq[CardState.Value], Card) = {
+    val seq = cardSeq(player0)
+    val toSeed = seedMap(seq)
+    (Deck.sorted.map(optimize(toSeed)(seq)),
+      mapCard(toSeed)(playerCards(choice)))
+
   }
 
   /**
@@ -361,13 +368,13 @@ case class Status(
       withTrump + (played.get -> CardState.Played)
 
     if (player0)
-      withTrump ++
+      withPlayed ++
         player0Cards.map(_ -> CardState.Player) ++
         player1Cards.map(_ -> CardState.Unknown) ++
         won0Cards.map(_ -> CardState.Won) ++
         won1Cards.map(_ -> CardState.Lost)
     else
-      withTrump ++
+      withPlayed ++
         player1Cards.map(_ -> CardState.Player) ++
         player0Cards.map(_ -> CardState.Unknown) ++
         won1Cards.map(_ -> CardState.Won) ++

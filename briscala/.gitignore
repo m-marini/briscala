@@ -5,4 +5,5 @@
 /.project
 /.worksheet
 /prova.txt
-/briscola.mat
+/*.mat
+/*.mat.tar.gz

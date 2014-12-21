@@ -54,53 +54,40 @@ object Generate extends App {
   /**
    *
    */
-  private def merge(a: (Int, Int), b: (Int, Int)): (Int, Int) = (a._1 + b._1, a._2 + b._2)
-
-  /**
-   *
-   */
-  private def merge(a: (StateValue, StateActionValue), b: (StateValue, StateActionValue)): (StateValue, StateActionValue) = {
-    val (sva, sava) = a;
-    val (svb, savb) = b;
-    val sv = sva ++ svb.map {
-      case (k, v) => k -> merge(v, sva.getOrElse(k, (0, 0)))
-    }
-    val sav = sava ++ savb.map {
-      case (k, v) => k -> merge(v, sava.getOrElse(k, (0, 0)))
-    }
-    (sv, sav)
-  }
-
-  /**
-   *
-   */
   private def save(n: Int): Unit = {
 
-    def saveLoop(acc: (StateValue, StateActionValue), n: Int): (StateValue, StateActionValue) =
+    def saveLoop(acc: ValueFunctions, n: Int): ValueFunctions =
       if (n == 0)
         acc
-      else
-        saveLoop(merge(acc, Game.createValues(random)), n - 1)
-
-    val (stateValue, actionStateValue) = saveLoop((Map(), Map()), n)
-    stateValue.foreach {
-      case (state, (win, tot)) => {
-        out.write(win.toDouble / tot.toDouble)
-        out.write(" ")
-        out.write(state.mkString(" "))
-        out.write("\n")
+      else {
+        if (n % 1000 == 0)
+          println(s"Remaining iteration: $n\r")
+        saveLoop(acc + Game.createValues(random), n - 1)
       }
+
+    val ValueFunctions(v, q) = saveLoop(ValueFunctions(), n)
+
+    //    val v = vt.filter { case (_, (_, t)) => t > 2 }
+    //    val q = qt.filter { case (_, (_, t)) => t > 2 }
+
+    out.write("# name: V\n");
+    out.write("# type: matrix\n")
+    out.write(s"# rows: ${v.size}\n")
+    out.write("# columns: 42\n");
+
+    v.foreach {
+      case (state, (win, tot)) =>
+        out.write(s"${state.map(_.id).mkString(" ")} $win $tot\n")
     }
     out.write("\n")
-    actionStateValue.foreach {
-      case ((action, state), (win, tot)) => {
-        out.write(win.toDouble / tot.toDouble)
-        out.write(" ")
-        out.write(action)
-        out.write(" ")
-        out.write(state.mkString(" "))
-        out.write("\n")
-      }
+    out.write("# name: Q\n");
+    out.write("# type: matrix\n")
+    out.write(s"# rows: ${q.size}\n")
+    out.write("# columns: 43\n");
+
+    q.foreach {
+      case ((state, card), (win, tot)) =>
+        out.write(s"${state.map(_.id).mkString(" ")} ${card.id} $win $tot\n")
     }
   }
 }

@@ -13,62 +13,60 @@ object Game {
         next((s, Some(c)) :: l, s.nextStatus(c))
       }
 
-    next(List(), createInitStatus(random)).reverse
+    next(List(), createInitStatus(random))
   }
 
   /**
    *
    */
-  def createValues(random: Random): (StateValue, StateActionValue) = {
+  def createValues(random: Random): ValueFunctions = {
     val game = create(random)
-
-    val player0Winner = game.head._1.isWinner0
-    val player1Winner = game.head._1.isWinner1
-
-    // filter state for response turn (played != None) and with choice
-    val state = create(random).filter {
-      case (status, _) => !status.played.isEmpty && status.numOfChoice > 1
-    }
 
     val (end, _) = game.head;
 
+    val winner0 = end.isWinner0
+    val winner1 = end.isWinner1
+
+    // filter state for response turn (played != None) and with choice
+    val state = game.filter { case (status, _) => !status.played.isEmpty && status.numOfChoice > 1 }
+
     // the after states are the state view of the opposite player
-    val as =
+    val lastAfterState =
       (game.drop(3).head match {
         case (status, _) =>
-          (end.toRow(!status.player0Turn), if (status.player0Turn) player1Winner else player0Winner);
-      }) :: state.map {
-        case (status, _) =>
-          (status.toRow(!status.player0Turn), if (status.player0Turn) player1Winner else player0Winner);
-      }
+          (end.toRow(!status.player0Turn), if (status.player0Turn) winner1 else winner0);
+      })
+    val afterStates = lastAfterState :: state.map {
+      case (status, _) =>
+        (status.toRow(!status.player0Turn), if (status.player0Turn) winner1 else winner0);
+    }
 
     // the state action are the state, action of the player
-    val sa = state.map {
+    val stateActions = state.map {
       case (status, action) =>
-        (action.get, status.toRow(status.player0Turn), if (status.player0Turn) player0Winner else player1Winner);
+        (status.toRow(status.player0Turn, action.get), if (status.player0Turn) winner0 else winner1);
     }
 
-    val asv = as.groupBy {
-      case (state, ret) => state
-    }.map {
-      case (state, list) => {
-        val win = list.count {
-          case (_, ret) => ret
+    val v: StateValue = afterStates.groupBy { case (state, ret) => state }.
+      map {
+        case (state, list) => {
+          val win = list.count {
+            case (_, ret) => ret
+          }
+          (state -> (win, list.size))
         }
-        (state -> (win, list.size))
       }
-    }
-    val sav = sa.groupBy {
-      case (action, state, ret) => (action, state)
+    val q: ActionValue = stateActions.groupBy {
+      case (key, ret) => key
     }.map {
       case (key, list) => {
         val win = list.count {
-          case (_, _, ret) => ret
+          case (_, ret) => ret
         }
         (key -> (win, list.size))
       }
     }
-    (asv, sav)
+    ValueFunctions(v, q)
   }
 
   /**

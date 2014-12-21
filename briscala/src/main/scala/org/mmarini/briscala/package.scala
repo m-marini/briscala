@@ -22,7 +22,16 @@ package object briscala {
     val Ace = Value("Ace")
   }
 
-  type StateValue = Map[IndexedSeq[Int], (Int, Int)]
+  object CardState extends Enumeration {
+    val Player = Value
+    val Won = Value
+    val Lost = Value
+    val Played = Value
+    val Trump = Value
+    val Unknown = Value
+  }
 
-  type StateActionValue = Map[(Int, IndexedSeq[Int]), (Int, Int)]
+  type StateValue = Map[IndexedSeq[CardState.Value], (Int, Int)]
+
+  type ActionValue = Map[(IndexedSeq[CardState.Value], Card), (Int, Int)]
 }
