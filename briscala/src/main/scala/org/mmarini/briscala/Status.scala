@@ -3,7 +3,6 @@
  */
 package org.mmarini.briscala
 
-import scala.util.Random
 import scala.collection.immutable.Map
 
 /**
@@ -277,98 +276,101 @@ case class Status(
   }
 
   /**
-   * Return the optimizer seed smap
+   * Return the optimizer seed map
    */
-  //  private lazy val seedMap: Map[Seed.Value, Seed.Value] = {
-  //    // Filter seed only cards
-  //    val seedsOnly = cardList.filterNot {
-  //      case (card, state) => card.isTrump
-  //    }
-  //    // Group them by seed
-  //    val bySeed = seedsOnly.groupBy {
-  //      case (card, _) => card.seed
-  //    }
-  //    // Group each seed by status and count the cards 
-  //    val byStatus = bySeed.map {
-  //      case (seed, list) =>
-  //        val map = (list.groupBy {
-  //          case (card, status) => status
-  //        })
-  //        val mapCount = map.map {
-  //          case (status, list) => (status -> list.size)
-  //        }
-  //        (seed, mapCount)
-  //    }
-  //
-  //    def compare(
-  //      mapA: Map[CardState.Value, Int],
-  //      mapB: Map[CardState.Value, Int],
-  //      order: List[CardState.Value]): Boolean =
-  //      if (order.isEmpty)
-  //        false
-  //      else {
-  //        val diff = mapA.getOrElse(order.head, 0) - mapB.getOrElse(order.head, 0)
-  //        if (diff < 0) true
-  //        else if (diff > 0) false
-  //        else
-  //          compare(mapA, mapB, order.tail)
-  //      }
-  //
-  //    // Sort the seed 
-  //    val sortedSeed = byStatus.toList.sortWith {
-  //      case ((seedA, mapA), (seedB, mapB)) =>
-  //        compare(mapA,
-  //          mapB,
-  //          List(CardState.Deck,
-  //            CardState.Won,
-  //            CardState.Lost,
-  //            CardState.Player,
-  //            CardState.Opposite))
-  //    }
-  //    val sorted = sortedSeed.map {
-  //      case (seed, _) => seed
-  //    }
-  //
-  //    (for { i <- 0 to 2 } yield (sorted(i) -> Seed(i + 1))).toMap + (Seed.Trump -> Seed.Trump)
-  //  }
+  private def seedMap(cards: Map[Card, CardState.Value]): Map[Seed.Value, Seed.Value] = {
+    // Filter seed only cards
+    val seedsOnly = cards.filterKeys(!_.isTrump);
+
+    // Group them by seed then state and then count
+    val bySeedState = seedsOnly.groupBy {
+      case (card, state) => card.seed
+    }.map {
+      case (seed, cards) => seed ->
+        cards.groupBy {
+          case (_, state) => state
+        }.map {
+          case (state, map) => state -> map.size
+        }
+    }
+
+    /**
+     *
+     */
+    def compare(
+      a: (Seed.Value, Map[CardState.Value, Int]),
+      b: (Seed.Value, Map[CardState.Value, Int])): Boolean = (a, b) match {
+      case ((seedA, stateMapA), (seedB, stateMapB)) => {
+        val maxA = stateMapA.maxBy { case (state, count) => count }
+        val maxB = stateMapB.maxBy { case (state, count) => count }
+        val diffCount = maxB._2 - maxA._2
+        if (diffCount < 0)
+          true
+        else if (diffCount > 0)
+          false
+        else if (maxA._1 < maxB._1)
+          true
+        else if (maxA._1 > maxB._1)
+          false
+        else
+          seedA < seedB
+      }
+    }
+
+    // Sort the seed 
+    val sorted = bySeedState.toList.sortWith(compare)
+
+    val sortedSeed = sorted.map(_._1)
+
+    val map = sortedSeed.zipWithIndex.map { case (seed, id) => Seed(id + 1) -> seed }.toMap
+
+    map + (Seed.Trump -> Seed.Trump)
+  }
 
   /**
    *
    */
-  //  def optimizedCard(card: Card): Card = Card(card.figure, seedMap(card.seed))
-
-  /**
-   *
-   */
-  private def optimize(s: IndexedSeq[CardState.Value]): IndexedSeq[CardState.Value] = {
-    s
+  private def optimize(s: Map[Card, CardState.Value]): Map[Card, CardState.Value] = {
+    val map = seedMap(s);
+    s.map {
+      case (card, state) => (Card(card.figure, map(card.seed)) -> state)
+    }
   }
 
   /**
    * Transform the status in int value masked to match the player perspective
    *
    */
-  def toRow(player0: Boolean): IndexedSeq[Int] =
-    optimize(cardSeq(player0)).map(_.id)
+  def toRow(player0: Boolean): IndexedSeq[Int] = {
+    val states = optimize(cardSeq(player0))
+    (0 to 39).map(i => states(new Card(i)).id)
+  }
 
   /**
    * Return the list of card and state
    */
-  private def cardSeq(player0: Boolean): IndexedSeq[CardState.Value] = {
-    val s0 = played.foldLeft((0 to 39).map(_ => CardState.Unknown))((s, card) => s.updated(card.id, CardState.Played))
-    val s1 = if (deck.isEmpty)
-      s0
+  private def cardSeq(player0: Boolean): Map[Card, CardState.Value] = {
+    val withDeck = deck.map((_ -> CardState.Unknown)).toMap;
+    val withTrump = if (deck.isEmpty)
+      withDeck
     else
-      s0.updated(trump.id, CardState.Trump)
+      withDeck + (trump -> CardState.Trump)
+    val withPlayed = if (played.isEmpty)
+      withTrump
+    else
+      withTrump + (played.get -> CardState.Played)
 
-    if (player0) {
-      val s2 = player0Cards.foldLeft(s1)((s, card) => s.updated(card.id, CardState.Player))
-      val s4 = won0Cards.foldLeft(s2)((s, card) => s.updated(card.id, CardState.Won))
-      won1Cards.foldLeft(s4)((s, card) => s.updated(card.id, CardState.Lost))
-    } else {
-      val s3 = player1Cards.foldLeft(s1)((s, card) => s.updated(card.id, CardState.Player))
-      val s4 = won0Cards.foldLeft(s3)((s, card) => s.updated(card.id, CardState.Lost))
-      won1Cards.foldLeft(s4)((s, card) => s.updated(card.id, CardState.Won))
-    }
+    if (player0)
+      withTrump ++
+        player0Cards.map(_ -> CardState.Player) ++
+        player1Cards.map(_ -> CardState.Unknown) ++
+        won0Cards.map(_ -> CardState.Won) ++
+        won1Cards.map(_ -> CardState.Lost)
+    else
+      withTrump ++
+        player1Cards.map(_ -> CardState.Player) ++
+        player0Cards.map(_ -> CardState.Unknown) ++
+        won1Cards.map(_ -> CardState.Won) ++
+        won0Cards.map(_ -> CardState.Lost)
   }
 }
