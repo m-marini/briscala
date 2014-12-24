@@ -23,12 +23,12 @@ package object briscala {
   }
 
   object CardState extends Enumeration {
+    val Unknown = Value
     val Player = Value
     val Won = Value
     val Lost = Value
     val Played = Value
     val Trump = Value
-    val Unknown = Value
   }
 
   type StateValue = Map[IndexedSeq[CardState.Value], (Int, Int)]

@@ -1,25 +1,15 @@
-function [X Y] = toFeatures(S)
-% toFeatures convert the step data into features
-%  S are the step data
-% gamma is the discount rate of rewards
-%
+function X = toFeatures(Indexes, n)
+% toFeatures reads the filename and returns the value and actions  function values
+%  X = toFeatures(Indexes, n)
+%   Indexes: the index of features
+%   n: the number of features
+% 
+%  X: are the features
 
-% remove final
-S = removeFinal(S);
-
-% filter after states
-S = afterStates(S);
-
-% Split the episode regarding player 0 and player 1 perspectives
-S = splitPlayers(S);
-
-% compute the card features
-X = cardFeatures(S); 
-
-% compute the return values
-Y = returns(S);
-
-% Compute state value
-[X Y] = stateValues(X, Y);
+m = size(Indexes, 1);
+X = zeros(m, n);
+for i = 1 : m
+	X( i , Indexes(i, : )) = 1;
+endfor
 
 endfunction
