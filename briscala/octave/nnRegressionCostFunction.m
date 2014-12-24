@@ -1,9 +1,9 @@
 function [J grad] = nnRegressionCostFunction(nn_params, ...
                                    noHiddens, ...
-                                   X, Y, lambda)
+                                   X, Y, c)
 %nnRegressionCostFunction Implements the neural network cost function for a two layer
 %neural network which performs regression
-%   [J grad] = nnRegressionCostFunction(nn_params, noHiddens, X, Y, lambda)
+%   [J grad] = nnRegressionCostFunction(nn_params, noHiddens, X, Y, c)
 %   computes the cost and gradient of the neural network. The
 %   parameters for the neural network are "unrolled" into the vector
 %   nn_params and need to be converted back into the weight matrices. 
@@ -48,19 +48,19 @@ A3 = A2 * W2';
 % Delta3 = m by n3
 Delta3 = A3 - Y;
 
-J = (sum(sum( Delta3 .^2 )) + (sum(sum(W1(:, 2 : end) .^ 2)) + sum(sum(W2(:, 2 : end) .^ 2))) * lambda) / 2 / m;
+J = (c * sum(sum( Delta3 .^2 )) + (sum(sum(W1(:, 2 : end) .^ 2)) + sum(sum(W2(:, 2 : end) .^ 2)))) / 2 / m;
 
 % W2_grad = n3 by n2 + 1
-W2_grad = Delta3' * A2 / m;
+W2_grad = c * Delta3' * A2 / m;
 
 % Delta2 = m by n2
 Delta2 = ( (Delta3 * W2) .* A2 .* (1 - A2) )( : , 2 : end);
 
 % W2_grad = n2 by n1 + 1
-W1_grad = Delta2' * A1 / m;
+W1_grad = c * Delta2' * A1 / m;
 
-W2_grad(:, 2 : end) += lambda / m * W2 (:, 2 :end);
-W1_grad(:, 2 : end) += lambda / m * W1 (:, 2 :end);
+W2_grad(:, 2 : end) += W2 (:, 2 :end) / m;
+W1_grad(:, 2 : end) += W1 (:, 2 :end) / m;
 	
 % Unroll gradients
 grad = [W1_grad(:) ; W2_grad(:)];

@@ -1,9 +1,9 @@
 function [J grad] = nnLogisticCostFunction(params, ...
                                    s2, s3, ...
-                                   X, Y, lambda)
+                                   X, Y, c)
 %NNCOST Implements the neural network cost function for a two layer
 %neural network which performs regression
-%   [J grad] = NNCOSTFUNCTON(nn_params, n1, n2, n3, X, y, lambda)
+%   [J grad] = NNCOSTFUNCTON(nn_params, n1, n2, n3, X, y, c)
 %   computes the cost and gradient of the neural network. The
 %   parameters for the neural network are "unrolled" into the vector
 %   nn_params and need to be converted back into the weight matrices. 
@@ -55,7 +55,7 @@ A4 = sigmoid(Z4);
 % Delta4 = m by s4
 Delta4 = A4 - Y;
 
-J = (sum(sum( Delta4 .^2 )) + (sum(sum(W1(:, 2 : end) .^ 2)) + sum(sum(W2(:, 2 : end) .^ 2)) + + sum(sum(W3(:, 2 : end) .^ 2))) * lambda) / 2 / m;
+J = (c * sum(sum( Delta4 .^2 )) + (sum(sum(W1(:, 2 : end) .^ 2)) + sum(sum(W2(:, 2 : end) .^ 2)) + sum(sum(W3(:, 2 : end) .^ 2)))) / (2 * m);
 
 DZ4 = Delta4 .* A4 .* (1 - A4);
 
@@ -72,18 +72,18 @@ DZ2 = Delta2 .* A2 .* (1 - A2);
 % Compute gradients
 
 % W3_grad = s4 by s3 + 1
-W3_grad = DZ4' * X3 / m;
+W3_grad = c / m * DZ4' * X3;
 
 % W2_grad = s3 by s3 + 1
-W2_grad = DZ3' * X2 / m;
+W2_grad = c / m * DZ3' * X2;
 
 % W2_grad = s2 by s1 + 1
-W1_grad = DZ2' * X1 / m;
+W1_grad = c / m * DZ2' * X1;
 
 % Regularize gradients
-W1_grad(:, 2 : end) += lambda / m * W1 (:, 2 :end);
-W2_grad(:, 2 : end) += lambda / m * W2 (:, 2 :end);
-W3_grad(:, 2 : end) += lambda / m * W3 (:, 2 :end);
+W1_grad(:, 2 : end) += W1 (:, 2 :end) / m;
+W2_grad(:, 2 : end) += W2 (:, 2 :end) / m;
+W3_grad(:, 2 : end) += W3 (:, 2 :end) / m;
 	
 % Unroll gradients
 grad = unrollParms(W1_grad, W2_grad, W3_grad);

@@ -1,21 +1,21 @@
 function main(filename, ...
-	inFile  = "features.mat",
-	noTrainIter = 1000, ...
+	inFile  = "states.mat",
+	noTrainIter = 300, ...
 	noTestIter = 100, ...
-	minLambda = 1e-3, ...
-	maxLambda = 1, ...
+	minC = 1, ...
+	maxC = 1e3, ...
 	minNoHidden = 10, ...
 	maxNoHidden = 20 ) 
 %  main(filename, ...
-%	inFile  = "features.mat",
-%	noTrainIter = 1000, ...
+%	inFile  = "states.mat",
+%	noTrainIter = 300, ...
 %	noTestIter = 100, ...
-%	minLambda = 1e-3, ...
-%	maxLambda = 1, ...
+%	minC = 1, ...
+%	maxC = 1e3, ...
 %	minNoHidden = 10, ...
 %	maxNoHidden = 20 ) 
 
-% lambda = regularization parameter
+% c = regularization parameter
 % noHiddens = number of hidden neurons
 
 
@@ -23,8 +23,13 @@ function main(filename, ...
 printf("Result file = %s\n", filename);
 
 % Load dataset
-printf("Loading dataset %s ...\n", inFile);
-load(inFile);
+printf("Load dataset %s ...\n", inFile);
+[X, Y] = loadFeatures(inFile);
+m = size(X, 1);
+
+printf("Loaded %d samples ...\n", m);
+
+[XL, YL, XV, YV, XT, YT] = samplePartition(X, Y, 60, 20, 20);
 
 printf("Training set %d samples...\n", size(XL, 1));
 printf("Validation set %d samples...\n", size(XV, 1));
@@ -46,17 +51,17 @@ s4 = size(YL, 2);
 trainingError = 0;
 validationError = 1e300;
 testError = 0;
-bestLambda = 0;
+bestC = 0;
 bestNoHidden = 0;
 
-qlambda = log(minLambda);
-mlambda = log(maxLambda/ minLambda);
+qc = log(minC);
+mc = log(maxC/ minC);
 qnh = log(minNoHidden);
 mnh = log(maxNoHidden / minNoHidden);
 
 for i = 1 : noTestIter
 	% init the data
-	lambda = exp(rand() * mlambda + qlambda) ;
+	c = exp(rand() * mc + qc) ;
 	s2 = floor( exp( rand() * mnh + qnh ) );
 	s3 = s2;
 	epsilon = sqrt( 6 / (s1 + s2 + s3) );
@@ -67,15 +72,15 @@ for i = 1 : noTestIter
 % ---------------------------------------------
 
 	printf("\n");
-	printf("Training network  lambda = %g, noHidden = %d\n", lambda, s2);
-	printf("Best ntework:\n");
-	printf("  Lambda = %g\n", bestLambda);
+	printf("Training network  C = %g, noHidden = %d\n", c, s2);
+	printf("Best network:\n");
+	printf("  C = %g\n", bestC);
 	printf("  Hidden units = %d\n", bestNoHidden);
 	printf("  RMS error on training set = %g\n", trainingError);
 	printf("  RMS error on validation set = %g\n", validationError);
 	printf("  RMS error on test set = %g\n", testError);
 	Params = rand(np, 1) * 2 * epsilon - epsilon;
-	costFunction = @(p) nnLogisticCostFunction(p, s2, s3, XL, YL, lambda);
+	costFunction = @(p) nnLogisticCostFunction(p, s2, s3, XL, YL, c);
 	[Params Cost] = fmincg(costFunction, Params, options);
 
 %	for k = 1 : 5
@@ -93,15 +98,15 @@ for i = 1 : noTestIter
 	err =  errorFunction(XV, YV, W1, W2, W3);
 	if err < validationError
 		validationError = err;
-		bestLambda = lambda;
+		bestC = c;
 		bestNoHidden = s2;
 		BestParams = Params;
 
-		trainingError = sqrt(Cost(end) * 2);
-		testError = errorFunction(XT, YT, W1, W2, W3)
+		trainingError = errorFunction(XL, YL, W1, W2, W3)
 % ---------------------------------------------
 % Testing
 % ---------------------------------------------
+		testError = errorFunction(XT, YT, W1, W2, W3)
 		save(filename, "trainingError", "validationError", "testError", "bestLambda", "bestNoHidden", "BestParams" );
 	endif
 endfor

@@ -5,3 +5,6 @@
 /runnit.sh~
 /test.mat
 /features.mat
+/actions.mat
+/best-3.mat
+/states.mat
