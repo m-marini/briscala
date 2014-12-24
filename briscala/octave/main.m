@@ -48,12 +48,22 @@ printf("Training the networks ...\n");
 s1 = size(XL, 2);
 s4 = size(YL, 2);
 
-trainingError = 0;
-validationError = 1e300;
-testError = 0;
-bestC = 0;
-bestNoHidden = 0;
-
+fe = length( find( fnmatch( filename, readdir( "." ) ) ) );
+if fe > 0
+	printf("Loading %s file ...\n", filename);
+	load(filename);
+	s2 = s3 = bestNoHidden;
+	[W1, W2, W3] = rollParms(BestParams, s1, s2, s3, s4);
+	validationError =  errorFunction(XV, YV, W1, W2, W3)
+	trainingError = errorFunction(XL, YL, W1, W2, W3)
+	testError = errorFunction(XT, YT, W1, W2, W3)
+else
+	trainingError = 0;
+	validationError = 1e300;
+	testError = 0;
+	bestC = 0;
+	bestNoHidden = 0;
+endif
 qc = log(minC);
 mc = log(maxC/ minC);
 qnh = log(minNoHidden);
@@ -107,7 +117,7 @@ for i = 1 : noTestIter
 % Testing
 % ---------------------------------------------
 		testError = errorFunction(XT, YT, W1, W2, W3)
-		save(filename, "trainingError", "validationError", "testError", "bestLambda", "bestNoHidden", "BestParams" );
+		save(filename, "trainingError", "validationError", "testError", "bestC", "bestNoHidden", "BestParams" );
 	endif
 endfor
 
