@@ -15,10 +15,6 @@ Y = Y(Idx, :);
 ntr = round(m * p_train / (p_train + p_valid + p_test));
 nv = round(m * p_valid / (p_train + p_valid + p_test));
 
-printf("Training set of %d samples\n", ntr);
-printf("Validation set of %d samples\n", nv);
-printf("Test set of %d samples\n", m - ntr - nv);
-
 XL  = X(1 : ntr, : );
 YL  = Y(1 : ntr, : );
 

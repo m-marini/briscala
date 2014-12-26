@@ -1,15 +1,11 @@
-function [J grad] = nnLogisticCostFunction(params, ...
-                                   s2, s3, ...
-                                   X, Y, c)
-%NNCOST Implements the neural network cost function for a two layer
-%neural network which performs regression
-%   [J grad] = NNCOSTFUNCTON(nn_params, n1, n2, n3, X, y, c)
-%   computes the cost and gradient of the neural network. The
-%   parameters for the neural network are "unrolled" into the vector
-%   nn_params and need to be converted back into the weight matrices. 
-% 
-%   The returned parameter grad should be a "unrolled" vector of the
-%   partial derivatives of the neural network.
+function [J grad] = nnLogisticCostFunction(params, s2, s3, X, Y, c)
+% nnLogisticCostFunction computes the cost and gradient of the neural network.
+% The parameters for the neural network are "unrolled" into the vector
+% params and need to be converted back into the weight matrices. 
+% The returned parameter grad are a "unrolled" vector of the
+% partial derivatives of the neural network.
+%
+%  [J grad] = nnLogisticCostFunction(params, s2, s3, X, Y, c)
 %
 
 % Reshape nn_params back into the parameters Theta1 and Theta2, the weight matrices
