@@ -1,4 +1,4 @@
-function n = nnParamters(s1, s2, s3, s4) 
+function n = nnParameters(s1, s2, s3, s4) 
 % nnParamters computes the number of parameter
 % for a two hidden layer neural network
 %
