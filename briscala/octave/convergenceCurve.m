@@ -1,4 +1,4 @@
-function convergenceCurve(filename, s2, s3,mx = -1, alpha = 10e-3, c = 1e3, noIter = 5) 
+function convergenceCurve(filename, s2, s3, costCurve=true, mx = -1, alpha = 10e-3, c = 1e3, noIter = 5) 
 % convergenceCurve(filename, s2, s3,mx = -1, alpha = 10e-3, c = 1e3, noIter = 5) 
 %  filename: the sample filename
 %  s2: number of neruons on 1st hidden layer
@@ -34,10 +34,14 @@ np = nnParameters(s1, s2, s3, s4);
 W = rand(np, 1) * 2 * epsilon - epsilon;
 printf("Testing %d samples\n", m);
 
-[W, J] = fminscg(W, s2, s3, X, Y, alpha, c, noIter);
+[W J E] = fminscg(W, s2, s3, X, Y, alpha, c, noIter);
 nc = size(J,1);
 
 XAxis = [m : nc] / m;
-plot(XAxis, mobileAvg(J, m), ";J;");
-
+if costCurve
+	plot(XAxis, mobileAvg(J, m));
+else
+	plot(XAxis, mobileAvg(E, m));
+endif
+	
 endfunction
