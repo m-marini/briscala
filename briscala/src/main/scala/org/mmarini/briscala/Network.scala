@@ -3,11 +3,9 @@
  */
 package org.mmarini.briscala
 
-import breeze.linalg.Matrix
-import breeze.linalg.Vector
-import breeze.numerics.sigmoid
-import breeze.linalg.DenseVector
 import breeze.linalg.DenseMatrix
+import breeze.linalg.DenseVector
+import breeze.numerics.sigmoid
 
 /**
  * @author us00852
@@ -20,6 +18,17 @@ class Network(w1: DenseMatrix[Double], w2: DenseMatrix[Double], w3: DenseMatrix[
    *
    */
   def apply(x: DenseVector[Double]): DenseVector[Double] = compute(x)._3
+
+  /**
+   *
+   */
+  def learn(x: DenseVector[Double], y: DenseVector[Double], c: Double, alpha: Double): (Network, Double) = {
+    val (cost, (g1, g2, g3)) = costAndGrad(x, y, c)
+    val nw1 = w1 - g1 * alpha
+    val nw2 = w2 - g2 * alpha
+    val nw3 = w3 - g3 * alpha
+    (new Network(nw1, nw2, nw3), cost)
+  }
 
   /**
    *
@@ -37,7 +46,7 @@ class Network(w1: DenseMatrix[Double], w2: DenseMatrix[Double], w3: DenseMatrix[
   def costAndGrad(x: DenseVector[Double], y: DenseVector[Double], c: Double): (Double, (DenseMatrix[Double], DenseMatrix[Double], DenseMatrix[Double])) = {
     val (x2, x3, x4) = compute(x)
 
-    val delta4 = y - x4;
+    val delta4 = x4 - y;
     val regw1 = w1(::, 1 to -1)
     val regw2 = w2(::, 1 to -1)
     val regw3 = w3(::, 1 to -1)
