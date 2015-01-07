@@ -4,6 +4,7 @@ import org.scalatest._
 import sun.security.jgss.krb5.InitSecContextToken
 import scala.collection.immutable.Vector
 import scala.collection.immutable.Map
+import breeze.linalg.DenseVector
 
 class StatusTest extends FunSpec with Matchers {
 
@@ -22,62 +23,6 @@ class StatusTest extends FunSpec with Matchers {
 
       it("should have player score 11 + 10") { status.player0Score should be(21) }
       it("should have opposite score 11 + 4") { status.player1Score should be(15) }
-    }
-
-    describe("when have unsorted deck list") {
-      val status = Status(
-        true,
-        (1 to 3).map(new Card(_)),
-        (4 to 6).map(new Card(_)),
-        List(29, 18, 19).map(new Card(_)).toSet,
-        Set(),
-        None,
-        new Card(0),
-        ((7 to 17) ++ (20 to 28) ++ (30 to 39)).map(new Card(_)).toIndexedSeq)
-      it("should sort the outage row for player 0") {
-        status.toRow(true) should be(
-          4 :: 0 :: 0 :: 0 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 1 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 1 :: 1 ::
-            List())
-      }
-      it("should sort the outage row for player 1") {
-        status.toRow(false) should be(
-          4 :: 5 :: 5 :: 5 :: 0 :: 0 :: 0 :: 5 :: 5 :: 5 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 2 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 2 :: 2 ::
-            List())
-      }
-    }
-
-    describe("when have unsorted won list") {
-      val status = Status(
-        true,
-        (1 to 3).map(new Card(_)),
-        (4 to 6).map(new Card(_)),
-        List(17, 18, 19, 27, 28, 37).map(new Card(_)).toSet,
-        List(29, 38, 39).map(new Card(_)).toSet,
-        None,
-        new Card(0),
-        ((7 to 16) ++ (20 to 26) ++ (30 to 36)).map(new Card(_)).toIndexedSeq)
-      it("should sort the outage row for player 0") {
-        status.toRow(true) should be(
-          4 :: 0 :: 0 :: 0 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 1 :: 1 :: 1 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 1 :: 1 :: 2 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 1 :: 2 :: 2 ::
-            List())
-      }
-      it("should sort the outage row for player 1") {
-        status.toRow(false) should be(
-          4 :: 5 :: 5 :: 5 :: 0 :: 0 :: 0 :: 5 :: 5 :: 5 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 2 :: 2 :: 2 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 2 :: 2 :: 1 ::
-            5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 5 :: 2 :: 1 :: 1 ::
-            List())
-      }
     }
   }
 

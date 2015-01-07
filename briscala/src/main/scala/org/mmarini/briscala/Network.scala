@@ -3,6 +3,9 @@
  */
 package org.mmarini.briscala
 
+import scala.math.sqrt
+import scala.util.Random
+
 import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 import breeze.numerics.sigmoid
@@ -67,6 +70,30 @@ class Network(w1: DenseMatrix[Double], w2: DenseMatrix[Double], w3: DenseMatrix[
     gradW1(::, 1 to -1) += regw1
 
     (cost, (gradW1, gradW2, gradW3))
+  }
+
+}
+
+/**
+ *
+ */
+object Network {
+  /**
+   *
+   */
+  def rand(s1: Int, s2: Int, s3: Int, s4: Int, epsilon: Double, random: Random): Network = {
+    val w1 = (DenseMatrix.rand(s2, s1 + 1) * 2.0 - DenseMatrix.ones[Double](s2, s1 + 1)) * epsilon
+    val w2 = (DenseMatrix.rand(s3, s2 + 1) * 2.0 - DenseMatrix.ones[Double](s3, s2 + 1)) * epsilon
+    val w3 = (DenseMatrix.rand(s4, s3 + 1) * 2.0 - DenseMatrix.ones[Double](s3, s2 + 1)) * epsilon
+    new Network(w1, w2, w3)
+  }
+
+  /**
+   *
+   */
+  def rand(s1: Int, s2: Int, s3: Int, s4: Int, random: Random): Network = {
+    val epsilon = sqrt(6.0 / (s1 + s2 + s3 + s4));
+    rand(s1, s2, s3, s4, epsilon, random)
   }
 
 }
