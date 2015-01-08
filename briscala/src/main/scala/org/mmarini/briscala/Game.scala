@@ -1,15 +1,16 @@
 package org.mmarini.briscala
 
 import scala.util.Random
+import breeze.stats.distributions.RandBasis
 
 object Game {
 
-  def create(random: Random): List[(Status, Option[Int])] = {
+  def create(random: RandBasis): List[(Status, Option[Int])] = {
     def next(l: List[(Status, Option[Int])], s: Status): List[(Status, Option[Int])] =
       if (s.isCompleted)
         (s, None) :: l
       else {
-        val c = random.nextInt(s.numOfChoice)
+        val c = random.randInt(s.numOfChoice).draw
         next((s, Some(c)) :: l, s.nextStatus(c))
       }
 
@@ -73,7 +74,7 @@ object Game {
   /**
    *
    */
-  def createInitStatus(random: Random): Status = {
+  def createInitStatus(random: RandBasis): Status = {
     val deck = Deck.shuffle(random)
     val Some(trump) = deck.drop(6).find(_.isTrump)
     Status(

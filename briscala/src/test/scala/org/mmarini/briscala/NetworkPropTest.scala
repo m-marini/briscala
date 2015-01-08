@@ -82,7 +82,7 @@ class NetworkPropTest extends PropSpec with PropertyChecks with Matchers {
       {
         val alpha = 1e-3;
         val n = 100;
-        def loop(i: Int, net: Network, prevCost: Double): Unit =
+        def loop(i: Int, net: BackPropagationNetwork, prevCost: Double): Unit =
           if (i > 0) {
             val (newNet, cost) = net.learn(x, y, c, alpha)
             withClue(s"at step #${n - i + 1}: ") {
@@ -95,7 +95,7 @@ class NetworkPropTest extends PropSpec with PropertyChecks with Matchers {
         val w2 = DenseMatrix((p(3), p(4)))
         val w3 = DenseMatrix((p(5), p(6)))
 
-        val net = new Network(w1, w2, w3)
+        val net = new BackPropagationNetwork(w1, w2, w3)
 
         loop(10, net, 1e308);
       }

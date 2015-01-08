@@ -2,24 +2,95 @@ package org.mmarini.briscala
 
 import org.scalatest._
 import scala.util.Random
+import breeze.linalg.DenseVector
+import breeze.stats.distributions.RandBasis
+import org.apache.commons.math3.random.JDKRandomGenerator
 
 class LearningAgentTest extends FunSpec with Matchers {
-  describe("A LearningAgent") {
-    val hiddens = 20
+  def randBiasis = {
+    val g = new JDKRandomGenerator()
+    g.setSeed(1)
+    new RandBasis(g)
+  }
+
+  describe("A default LearningAgent") {
+    val hiddens = 3
     val c = 1e3
     val alpha = 10e-3
     val epsilonGreedy = 0.0
     val lambda = 0.8
-    val random = new Random(1)
+    val random = randBiasis
+
+    val agent = LearningAgent.defaultAgent(hiddens, c, alpha, epsilonGreedy, lambda, random)
+
+    describe("when computing V") {
+      val s = Game.createInitStatus(random)
+      val v = agent.valueByAction(s)
+
+      it("should return a list of three 0.5 values") {
+        v should have size (3)
+        v should be(IndexedSeq(0.5, 0.5, 0.5))
+      }
+    }
+    describe("when computing Q") {
+      val s = Game.createInitStatus(random).nextStatus(0)
+      val v = agent.valueByAction(s)
+
+      it("should return a list of three 0.5 values") {
+        v should have size (3)
+        v should be(IndexedSeq(0.5, 0.5, 0.5))
+      }
+    }
+  }
+
+  describe("A random LearningAgent") {
+    val hiddens = 1
+    val c = 1e4
+    val alpha = 1e-4
+    val epsilonGreedy = 0.0
+    val lambda = 1.0
+    val random = randBiasis
 
     val agent = LearningAgent.rand(hiddens, c, alpha, epsilonGreedy, lambda, random)
 
-    describe("when selecting an action by V") {
-      val s = Game.createInitStatus(random)
-      val action = agent.selectActionByV(s);
+    describe("when learnt in test status") {
+      val status = Status(
+        true,
+        (1 to 3).map(new Card(_)),
+        (4 to 6).map(new Card(_)),
+        Set(),
+        Set(),
+        None,
+        new Card(0),
+        (7 to 39).map(new Card(_)))
 
-      it("should select the best action") {
+      def learnLoop(n: Int, agent: LearningAgent): LearningAgent =
+        if (n <= 0)
+          agent
+        else {
+          val na = agent.learn(status, 0, false).learn(status, 1, true).learn(status, 2, false).update.clearTraces
+          learnLoop(n - 1, na)
+        }
 
+      val betterAgent = learnLoop(1000, agent)
+
+      it("after states should be different ") {
+        val hs = HiddenStatus(status, status.player0Turn)
+        val as0 = hs.afterState(0).statusFeatures
+        val as1 = hs.afterState(1).statusFeatures
+        val as2 = hs.afterState(2).statusFeatures
+
+        as0 should not be (as1)
+        as0 should not be (as2)
+        as1 should not be (as2)
+      }
+
+      it("should return a list where second element should be the highest") {
+        val v0 = agent.valueByAction(status)
+        val v1 = betterAgent.valueByAction(status)
+        v1(0) should be < 0.5
+        v1(1) should be > 0.5
+        v1(2) should be < 0.5
       }
     }
   }

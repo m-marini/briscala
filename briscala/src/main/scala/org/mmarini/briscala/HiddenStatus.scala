@@ -13,6 +13,12 @@ import breeze.linalg.operators.DenseVector_GenericOps
 case class HiddenStatus(status: Status, player0: Boolean) {
 
   /**
+   *
+   */
+  def afterState(choice: Int): HiddenStatus =
+    HiddenStatus(next(choice), player0)
+
+  /**
    * Return the optimizer seed map
    */
   private lazy val seedMap: Map[Seed.Value, Seed.Value] = {

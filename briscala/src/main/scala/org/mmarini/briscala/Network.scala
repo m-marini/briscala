@@ -5,10 +5,13 @@ package org.mmarini.briscala
 
 import scala.math.sqrt
 import scala.util.Random
-
 import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 import breeze.numerics.sigmoid
+import breeze.stats.distributions.Rand
+import breeze.stats.distributions.RandBasis
+import org.apache.commons.math3.random.RandomGenerator
+import breeze.stats.distributions.Uniform
 
 /**
  * @author us00852
@@ -21,17 +24,6 @@ class Network(w1: DenseMatrix[Double], w2: DenseMatrix[Double], w3: DenseMatrix[
    *
    */
   def apply(x: DenseVector[Double]): DenseVector[Double] = compute(x)._3
-
-  /**
-   *
-   */
-  def learn(x: DenseVector[Double], y: DenseVector[Double], c: Double, alpha: Double): (Network, Double) = {
-    val (cost, (g1, g2, g3)) = costAndGrad(x, y, c)
-    val nw1 = w1 - g1 * alpha
-    val nw2 = w2 - g2 * alpha
-    val nw3 = w3 - g3 * alpha
-    (new Network(nw1, nw2, nw3), cost)
-  }
 
   /**
    *
@@ -59,41 +51,16 @@ class Network(w1: DenseMatrix[Double], w2: DenseMatrix[Double], w3: DenseMatrix[
     val gradW3 = dz4 * DenseVector.vertcat(one, x3).t * c;
     gradW3(::, 1 to -1) += regw3
 
-    val delta3 = w3(::, 1 to -1) * dz4;
+    val delta3 = regw3.t * dz4;
     val dz3 = delta3 :* x3 :* (DenseVector.ones[Double](x3.size) - x3)
     val gradW2 = dz3 * DenseVector.vertcat(one, x2).t * c;
     gradW2(::, 1 to -1) += regw2
 
-    val delta2 = w2(::, 1 to -1) * dz3;
+    val delta2 = regw2.t * dz3;
     val dz2 = delta2 :* x2 :* (DenseVector.ones[Double](x2.size) - x2)
     val gradW1 = dz2 * DenseVector.vertcat(one, x).t * c;
     gradW1(::, 1 to -1) += regw1
 
     (cost, (gradW1, gradW2, gradW3))
   }
-
-}
-
-/**
- *
- */
-object Network {
-  /**
-   *
-   */
-  def rand(s1: Int, s2: Int, s3: Int, s4: Int, epsilon: Double, random: Random): Network = {
-    val w1 = (DenseMatrix.rand(s2, s1 + 1) * 2.0 - DenseMatrix.ones[Double](s2, s1 + 1)) * epsilon
-    val w2 = (DenseMatrix.rand(s3, s2 + 1) * 2.0 - DenseMatrix.ones[Double](s3, s2 + 1)) * epsilon
-    val w3 = (DenseMatrix.rand(s4, s3 + 1) * 2.0 - DenseMatrix.ones[Double](s3, s2 + 1)) * epsilon
-    new Network(w1, w2, w3)
-  }
-
-  /**
-   *
-   */
-  def rand(s1: Int, s2: Int, s3: Int, s4: Int, random: Random): Network = {
-    val epsilon = sqrt(6.0 / (s1 + s2 + s3 + s4));
-    rand(s1, s2, s3, s4, epsilon, random)
-  }
-
 }

@@ -2,16 +2,18 @@ package org.mmarini.briscala
 
 import scala.util.Random
 import breeze.linalg.DenseMatrix
+import breeze.linalg.DenseVector
+import breeze.stats.distributions.RandBasis
+import breeze.stats.distributions.Bernoulli
 
 /**
  *
  */
-class LearningAgent(vNet: Network, qNet: Network, c: Double, alpha: Double, epsilonGreedy: Double, lambda: Double, random: Random) {
-
+class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningParameters, epsilonGreedy: Double, random: RandBasis) {
   /**
    *
    */
-  def learn: (Network, Network) = improveNetwork(createGame)
+  def learn: LearningAgent = improve(createGame)
 
   /**
    *
@@ -34,7 +36,7 @@ class LearningAgent(vNet: Network, qNet: Network, c: Double, alpha: Double, epsi
   def selectAction(s: Status): Int =
     if (s.numOfChoice == 1)
       0
-    else if (random.nextDouble < epsilonGreedy)
+    else if (new Bernoulli(epsilonGreedy, random).draw)
       selectActionExploring(s)
     else
       selectActionExploiting(s)
@@ -42,63 +44,75 @@ class LearningAgent(vNet: Network, qNet: Network, c: Double, alpha: Double, epsi
   /**
    *
    */
-  def selectActionExploring(s: Status): Int = random.nextInt(s.numOfChoice)
+  def selectActionExploring(s: Status): Int = random.randInt(s.numOfChoice).draw
 
   /**
    *
    */
   def selectActionExploiting(s: Status): Int =
-    if (s.played.isEmpty)
-      // use after state
-      selectActionByV(s)
+    valueByAction(s).zipWithIndex.maxBy { case (v, _) => v }._2
+
+  /**
+   *
+   */
+  def valueByAction(s: Status): IndexedSeq[Double] =
+    for (action <- 0 until s.numOfChoice) yield if (s.played.isEmpty)
+      vNet(HiddenStatus(s, s.player0Turn).afterState(action).statusFeatures)(0)
     else
-      // use action values
-      selectActionByQ(s)
+      qNet(HiddenStatus(s, s.player0Turn).actionFeatures(action))(0)
 
   /**
-   * Select the best action by V
    *
-   * For each action evaluate V(s') in the after-state e and choose the higher value
    */
-  def selectActionByV(status: Status): Int = {
-    ???
+  def improve(game: List[(Status, Option[Int])]): LearningAgent = ???
+
+  /**
+   *
+   */
+  def learn(status: Status, action: Int, win: Boolean): LearningAgent = {
+    val y = DenseVector(if (win) 1.0 else 0.0)
+    if (status.played.isEmpty) {
+      val x = HiddenStatus(status, status.player0Turn).afterState(action).statusFeatures
+      val (nv, _) = vNet.learn(x, y, parms.c, parms.lambda)
+      new LearningAgent(nv, qNet, parms, epsilonGreedy, random)
+    } else {
+      val x = HiddenStatus(status, status.player0Turn).actionFeatures(action)
+      val (nq, _) = qNet.learn(x, y, parms.c, parms.lambda)
+      new LearningAgent(vNet, nq, parms, epsilonGreedy, random)
+    }
   }
 
   /**
-   * Select the best action by q
    *
-   * For each action evaluate Q(s, a') and choose the higher value
    */
-  def selectActionByQ(status: Status): Int = {
-    ???
-  }
+  def update: LearningAgent =
+    new LearningAgent(vNet.update(parms.alpha), qNet.update(parms.alpha), parms, epsilonGreedy, random)
 
   /**
    *
    */
-  def improveNetwork(game: List[(Status, Option[Int])]): (Network, Network) = ???
+  def clearTraces: LearningAgent =
+    new LearningAgent(vNet.clearTraces, qNet.clearTraces, parms, epsilonGreedy, random)
+
 }
 
 object LearningAgent {
 
-  def rand(hiddenNeuros: Int, c: Double, alpha: Double, epsilonGreedy: Double, lambda: Double, random: Random): LearningAgent = {
-    val s1 = HiddenStatus.statusFeatureSize
-    val s2 = hiddenNeuros
-    val s3 = hiddenNeuros
-    val s4 = 1
+  /**
+   *
+   */
+  def defaultAgent(hiddenNeuros: Int, c: Double, alpha: Double, lambda: Double, epsilonGreedy: Double, random: RandBasis): LearningAgent =
+    new LearningAgent(
+      TracedNetwork.defaultNetwork(HiddenStatus.statusFeatureSize, hiddenNeuros, hiddenNeuros, 1),
+      TracedNetwork.defaultNetwork(HiddenStatus.actionFeatureSize, hiddenNeuros, hiddenNeuros, 1),
+      LearningParameters(c, alpha, lambda), epsilonGreedy, random)
 
-    val vw1 = DenseMatrix.rand(s2, s1 + 1);
-    val vw2 = DenseMatrix.rand(s3, s2 + 1);
-    val vw3 = DenseMatrix.rand(s4, s3 + 1);
-
-    val vNet = new Network(vw1, vw2, vw3)
-
-    val qw1 = DenseMatrix.rand(s2, s1 + 1);
-    val qw2 = DenseMatrix.rand(s3, s2 + 1);
-    val qw3 = DenseMatrix.rand(s4, s3 + 1);
-
-    val qNet = new Network(qw1, qw2, qw3)
-
-    new LearningAgent(vNet, qNet, c, alpha, epsilonGreedy, lambda, random)
-  }
+  /**
+   *
+   */
+  def rand(hiddenNeuros: Int, c: Double, alpha: Double, epsilonGreedy: Double, lambda: Double, random: RandBasis): LearningAgent =
+    new LearningAgent(
+      TracedNetwork.rand(HiddenStatus.statusFeatureSize, hiddenNeuros, hiddenNeuros, 1, random),
+      TracedNetwork.rand(HiddenStatus.actionFeatureSize, hiddenNeuros, hiddenNeuros, 1, random),
+      LearningParameters(c, alpha, lambda), epsilonGreedy, random)
 }
