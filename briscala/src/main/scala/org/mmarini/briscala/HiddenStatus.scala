@@ -19,6 +19,16 @@ case class HiddenStatus(status: Status, player0: Boolean) {
     HiddenStatus(next(choice), player0)
 
   /**
+   *
+   */
+  def numOfChoice: Int = status.numOfChoice
+
+  /**
+   *
+   */
+  def isCompleted: Boolean = status.isCompleted
+
+  /**
    * Return the optimizer seed map
    */
   private lazy val seedMap: Map[Seed.Value, Seed.Value] = {
@@ -114,7 +124,7 @@ case class HiddenStatus(status: Status, player0: Boolean) {
       withDeck
     else
       withDeck + (status.trump -> CardState.Trump)
-    val withPlayed = if (status.played.isEmpty)
+    val withPlayed = if (!status.isFirstHand)
       withTrump
     else
       withTrump + (status.played.get -> CardState.Played)

@@ -20,9 +20,9 @@ class HiddenStatusTest extends FunSpec with Matchers {
       new Card(0),
       ((7 to 17) ++ (20 to 28) ++ (30 to 39)).map(new Card(_)).toIndexedSeq)
 
-    describe("when perspected by player 0") {
+    describe("when perspected by player") {
 
-      val status = HiddenStatus(visibleStatus, true)
+      val status = visibleStatus.hidden
 
       it("should sort the outage row") {
         status.toRow should be(
@@ -40,9 +40,9 @@ class HiddenStatusTest extends FunSpec with Matchers {
       }
     }
 
-    describe("when perspected by player 1") {
+    describe("when perspected by opposite") {
 
-      val status = HiddenStatus(visibleStatus, false)
+      val status = visibleStatus.hiddenOpposite
 
       it("should sort the outage row") {
         status.toRow should be(
@@ -67,8 +67,8 @@ class HiddenStatusTest extends FunSpec with Matchers {
       new Card(0),
       ((7 to 17) ++ (20 to 28) ++ (30 to 39)).map(new Card(_)).toIndexedSeq)
 
-    describe("when perspected by player 0") {
-      val status = HiddenStatus(visibleStatus, true)
+    describe("when perspected by player") {
+      val status = visibleStatus.hidden
 
       it("should generate a DenseVector which maps the outage row status") {
         val x = status.statusFeatures
@@ -265,8 +265,8 @@ class HiddenStatusTest extends FunSpec with Matchers {
       }
     }
 
-    describe("when perspected by player 1") {
-      val status = HiddenStatus(visibleStatus, false)
+    describe("when perspected by opposite") {
+      val status = visibleStatus.hiddenOpposite
 
       it("should generate a DenseVector which maps the outage row status") {
         val x = status.statusFeatures
@@ -475,16 +475,16 @@ class HiddenStatusTest extends FunSpec with Matchers {
       new Card(0),
       ((7 to 16) ++ (20 to 26) ++ (30 to 36)).map(new Card(_)).toIndexedSeq)
 
-    it("should sort the outage row for player 0") {
-      HiddenStatus(vs, true).toRow should be(
+    it("should sort the outage row for player") {
+      vs.hidden.toRow should be(
         CardState.Trump :: CardState.Player :: CardState.Player :: CardState.Player :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Won :: CardState.Won :: CardState.Won ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Won :: CardState.Won :: CardState.Lost ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Won :: CardState.Lost :: CardState.Lost ::
           List())
     }
-    it("should sort the outage row for player 1") {
-      HiddenStatus(vs, false).toRow should be(
+    it("should sort the outage row for opposite") {
+      vs.hiddenOpposite.toRow should be(
         CardState.Trump :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Player :: CardState.Player :: CardState.Player :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Lost :: CardState.Lost :: CardState.Lost ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Lost :: CardState.Lost :: CardState.Won ::

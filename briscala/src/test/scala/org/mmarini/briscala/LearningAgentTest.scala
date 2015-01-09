@@ -53,7 +53,7 @@ class LearningAgentTest extends FunSpec with Matchers {
 
     val agent = LearningAgent.rand(hiddens, c, alpha, epsilonGreedy, lambda, random)
 
-    describe("when learnt in test status") {
+    describe("when learnt for second action in status for first hand player") {
       val status = Status(
         true,
         (1 to 3).map(new Card(_)),
@@ -91,6 +91,57 @@ class LearningAgentTest extends FunSpec with Matchers {
         v1(0) should be < 0.5
         v1(1) should be > 0.5
         v1(2) should be < 0.5
+      }
+
+      it("should select the second action") {
+        val action = betterAgent.selectActionExploiting(status)
+        action should be(1)
+      }
+    }
+
+    describe("when learnt for second action in status for second hand player") {
+      val status = Status(
+        false,
+        (2 to 3).map(new Card(_)),
+        (4 to 6).map(new Card(_)),
+        Set(),
+        Set(),
+        Some(new Card(1)),
+        new Card(0),
+        (7 to 39).map(new Card(_)))
+
+      def learnLoop(n: Int, agent: LearningAgent): LearningAgent =
+        if (n <= 0)
+          agent
+        else {
+          val na = agent.learn(status, 0, false).learn(status, 1, true).learn(status, 2, false).update.clearTraces
+          learnLoop(n - 1, na)
+        }
+
+      val betterAgent = learnLoop(3000, agent)
+
+      it("action features should be different ") {
+        val hs = HiddenStatus(status, status.player0Turn)
+        val as0 = hs.actionFeatures(0)
+        val as1 = hs.actionFeatures(1)
+        val as2 = hs.actionFeatures(2)
+
+        as0 should not be (as1)
+        as0 should not be (as2)
+        as1 should not be (as2)
+      }
+
+      it("should return a list where second element should be the highest") {
+        val v0 = agent.valueByAction(status)
+        val v1 = betterAgent.valueByAction(status)
+        v1(0) should be < 0.5
+        v1(1) should be > 0.5
+        v1(2) should be < 0.5
+      }
+
+      it("should select the second action") {
+        val action = betterAgent.selectActionExploiting(status)
+        action should be(1)
       }
     }
   }

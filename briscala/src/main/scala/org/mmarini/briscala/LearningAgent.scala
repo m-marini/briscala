@@ -10,6 +10,9 @@ import breeze.stats.distributions.Bernoulli
  *
  */
 class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningParameters, epsilonGreedy: Double, random: RandBasis) {
+
+  private val greedyProb = new Bernoulli(epsilonGreedy, random)
+
   /**
    *
    */
@@ -24,9 +27,8 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
         (s, None) :: l
       else {
         val c = selectAction(s)
-        next((s, Some(c)) :: l, s.nextStatus(c))
+        next((s, Some(c)) :: l, s.hidden.next(c))
       }
-
     next(List(), Game.createInitStatus(random))
   }
 
@@ -36,7 +38,7 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
   def selectAction(s: Status): Int =
     if (s.numOfChoice == 1)
       0
-    else if (new Bernoulli(epsilonGreedy, random).draw)
+    else if (greedyProb.draw)
       selectActionExploring(s)
     else
       selectActionExploiting(s)
@@ -57,29 +59,71 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
    */
   def valueByAction(s: Status): IndexedSeq[Double] =
     for (action <- 0 until s.numOfChoice) yield if (s.played.isEmpty)
-      vNet(HiddenStatus(s, s.player0Turn).afterState(action).statusFeatures)(0)
+      vNet(s.hidden.afterState(action).statusFeatures)(0)
     else
-      qNet(HiddenStatus(s, s.player0Turn).actionFeatures(action))(0)
+      qNet(s.hidden.actionFeatures(action))(0)
 
   /**
    *
    */
-  def improve(game: List[(Status, Option[Int])]): LearningAgent = ???
+  def improve(game: List[(Status, Option[Int])]): LearningAgent = {
+    // remove banal step (the ones with no choice or first hand steps)
+    val noBanalSteps = game.filter { case (step, _) => step.numOfChoice > 1 && !step.played.isEmpty }
+    // Split to player0 hand steps and player1 hand step
+    val (p0, p1) = noBanalSteps.partition { case (step, _) => step.player0Turn }
+
+    //generate returns for players
+    val (finalState, _) = game.head
+    val r0 = DenseVector(if (finalState.isWinner0) 1.0 else 0.0)
+    val r1 = DenseVector(if (finalState.isWinner1) 1.0 else 0.0)
+
+    //generate action features for player
+    val qx0 = p0.map { case (s, a) => (s.hidden.actionFeatures(a.get), r0) }
+    val qx1 = p1.map { case (s, a) => (s.hidden.actionFeatures(a.get), r1) }
+    //generate state features for players
+    val vx0 = p0.map { case (s, a) => (s.hiddenOpposite.statusFeatures, r1) }
+    val vx1 = p1.map { case (s, a) => (s.hiddenOpposite.statusFeatures, r0) }
+
+    def learnV(agent: LearningAgent, sample: (DenseVector[Double], DenseVector[Double])): LearningAgent =
+      sample match {
+        case (x, y) => agent.learnV(x, y)
+      }
+    def learnQ(agent: LearningAgent, sample: (DenseVector[Double], DenseVector[Double])): LearningAgent =
+      sample match {
+        case (x, y) => agent.learnQ(x, y)
+      }
+
+    val ag1 = (vx0.reverse.foldLeft(this))(learnV).update.clearTraces
+    val ag2 = (vx1.reverse.foldLeft(ag1))(learnV).update.clearTraces
+    val ag3 = (qx0.foldLeft(ag2))(learnQ).update.clearTraces
+    (qx1.foldLeft(ag3))(learnQ).update.clearTraces
+  }
+
+  /**
+   *
+   */
+  def learnV(x: DenseVector[Double], y: DenseVector[Double]): LearningAgent = {
+    val (nv, _) = vNet.learn(x, y, parms.c, parms.lambda)
+    new LearningAgent(nv, qNet, parms, epsilonGreedy, random)
+  }
+
+  /**
+   *
+   */
+  def learnQ(x: DenseVector[Double], y: DenseVector[Double]): LearningAgent = {
+    val (nq, _) = qNet.learn(x, y, parms.c, parms.lambda)
+    new LearningAgent(vNet, nq, parms, epsilonGreedy, random)
+  }
 
   /**
    *
    */
   def learn(status: Status, action: Int, win: Boolean): LearningAgent = {
     val y = DenseVector(if (win) 1.0 else 0.0)
-    if (status.played.isEmpty) {
-      val x = HiddenStatus(status, status.player0Turn).afterState(action).statusFeatures
-      val (nv, _) = vNet.learn(x, y, parms.c, parms.lambda)
-      new LearningAgent(nv, qNet, parms, epsilonGreedy, random)
-    } else {
-      val x = HiddenStatus(status, status.player0Turn).actionFeatures(action)
-      val (nq, _) = qNet.learn(x, y, parms.c, parms.lambda)
-      new LearningAgent(vNet, nq, parms, epsilonGreedy, random)
-    }
+    if (status.played.isEmpty)
+      learnV(status.hidden.afterState(action).statusFeatures, y)
+    else
+      learnQ(status.hidden.actionFeatures(action), y)
   }
 
   /**

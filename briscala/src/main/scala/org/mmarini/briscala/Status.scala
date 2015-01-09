@@ -21,6 +21,18 @@ case class Status(
   trump: Card,
   deck: IndexedSeq[Card]) {
 
+  lazy val isFirstHand = played.isEmpty
+
+  /**
+   *
+   */
+  lazy val hiddenOpposite: HiddenStatus = HiddenStatus(this, !player0Turn)
+
+  /**
+   *
+   */
+  lazy val hidden: HiddenStatus = HiddenStatus(this, player0Turn)
+
   /**
    * Return the player cards
    */
