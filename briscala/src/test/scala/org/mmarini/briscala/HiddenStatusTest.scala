@@ -22,7 +22,7 @@ class HiddenStatusTest extends FunSpec with Matchers {
 
     describe("when perspected by player") {
 
-      val status = visibleStatus.hidden
+      val status = visibleStatus.playerHidden
 
       it("should sort the outage row") {
         status.toRow should be(
@@ -42,7 +42,7 @@ class HiddenStatusTest extends FunSpec with Matchers {
 
     describe("when perspected by opposite") {
 
-      val status = visibleStatus.hiddenOpposite
+      val status = visibleStatus.oppositeHidden
 
       it("should sort the outage row") {
         status.toRow should be(
@@ -68,7 +68,7 @@ class HiddenStatusTest extends FunSpec with Matchers {
       ((7 to 17) ++ (20 to 28) ++ (30 to 39)).map(new Card(_)).toIndexedSeq)
 
     describe("when perspected by player") {
-      val status = visibleStatus.hidden
+      val status = visibleStatus.playerHidden
 
       it("should generate a DenseVector which maps the outage row status") {
         val x = status.statusFeatures
@@ -266,7 +266,7 @@ class HiddenStatusTest extends FunSpec with Matchers {
     }
 
     describe("when perspected by opposite") {
-      val status = visibleStatus.hiddenOpposite
+      val status = visibleStatus.oppositeHidden
 
       it("should generate a DenseVector which maps the outage row status") {
         val x = status.statusFeatures
@@ -476,7 +476,7 @@ class HiddenStatusTest extends FunSpec with Matchers {
       ((7 to 16) ++ (20 to 26) ++ (30 to 36)).map(new Card(_)).toIndexedSeq)
 
     it("should sort the outage row for player") {
-      vs.hidden.toRow should be(
+      vs.playerHidden.toRow should be(
         CardState.Trump :: CardState.Player :: CardState.Player :: CardState.Player :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Won :: CardState.Won :: CardState.Won ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Won :: CardState.Won :: CardState.Lost ::
@@ -484,7 +484,7 @@ class HiddenStatusTest extends FunSpec with Matchers {
           List())
     }
     it("should sort the outage row for opposite") {
-      vs.hiddenOpposite.toRow should be(
+      vs.oppositeHidden.toRow should be(
         CardState.Trump :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Player :: CardState.Player :: CardState.Player :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Lost :: CardState.Lost :: CardState.Lost ::
           CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Unknown :: CardState.Lost :: CardState.Lost :: CardState.Won ::

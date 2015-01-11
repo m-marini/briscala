@@ -10,13 +10,13 @@ import breeze.linalg.operators.DenseVector_GenericOps
  * @author us00852
  *
  */
-case class HiddenStatus(status: Status, player0: Boolean) {
+case class HiddenStatus(status: Status, player: Boolean) {
 
   /**
    *
    */
   def afterState(choice: Int): HiddenStatus =
-    HiddenStatus(next(choice), player0)
+    HiddenStatus(next(choice), player)
 
   /**
    *
@@ -124,23 +124,23 @@ case class HiddenStatus(status: Status, player0: Boolean) {
       withDeck
     else
       withDeck + (status.trump -> CardState.Trump)
-    val withPlayed = if (!status.isFirstHand)
+    val withPlayed = if (status.isFirstHand)
       withTrump
     else
       withTrump + (status.played.get -> CardState.Played)
 
-    if (player0)
+    if (player)
       withPlayed ++
-        status.player0Cards.map(_ -> CardState.Player) ++
-        status.player1Cards.map(_ -> CardState.Unknown) ++
-        status.won0Cards.map(_ -> CardState.Won) ++
-        status.won1Cards.map(_ -> CardState.Lost)
+        status.playerCards.map(_ -> CardState.Player) ++
+        status.oppositeCards.map(_ -> CardState.Unknown) ++
+        status.wonCards.map(_ -> CardState.Won) ++
+        status.lostCards.map(_ -> CardState.Lost)
     else
       withPlayed ++
-        status.player1Cards.map(_ -> CardState.Player) ++
-        status.player0Cards.map(_ -> CardState.Unknown) ++
-        status.won1Cards.map(_ -> CardState.Won) ++
-        status.won0Cards.map(_ -> CardState.Lost)
+        status.oppositeCards.map(_ -> CardState.Player) ++
+        status.playerCards.map(_ -> CardState.Unknown) ++
+        status.lostCards.map(_ -> CardState.Won) ++
+        status.wonCards.map(_ -> CardState.Lost)
   }
 
   /**

@@ -3,65 +3,36 @@
  */
 package org.mmarini.briscala
 
-import scala.collection.immutable.Map
-import breeze.linalg.DenseVector
-import breeze.linalg.operators.DenseVector_GenericOps
+import scala.Vector
 
 /**
  * @author us00852
  *
  */
 case class Status(
-  player0Turn: Boolean,
-  player0Cards: IndexedSeq[Card],
-  player1Cards: IndexedSeq[Card],
-  won0Cards: Set[Card],
-  won1Cards: Set[Card],
+  isPlayer0: Boolean,
+  playerCards: IndexedSeq[Card],
+  oppositeCards: IndexedSeq[Card],
+  wonCards: Set[Card],
+  lostCards: Set[Card],
   played: Option[Card],
   trump: Card,
   deck: IndexedSeq[Card]) {
 
+  /**
+   *
+   */
   lazy val isFirstHand = played.isEmpty
 
   /**
    *
    */
-  lazy val hiddenOpposite: HiddenStatus = HiddenStatus(this, !player0Turn)
+  lazy val playerHidden = HiddenStatus(this, true)
 
   /**
    *
    */
-  lazy val hidden: HiddenStatus = HiddenStatus(this, player0Turn)
-
-  /**
-   * Return the player cards
-   */
-  lazy val playerCards = if (player0Turn) player0Cards else player1Cards
-
-  /**
-   * Return the player cards
-   */
-  lazy val oppositeCards = if (player0Turn) player1Cards else player0Cards
-
-  /**
-   * Return the player cards
-   */
-  lazy val wonCards = if (player0Turn) won0Cards else won1Cards
-
-  /**
-   * Return the player cards
-   */
-  lazy val lostCards = if (player0Turn) won1Cards else won0Cards
-
-  /**
-   * Return player score
-   */
-  lazy val playerScore = if (player0Turn) player0Score else player1Score
-
-  /**
-   * Return player score
-   */
-  lazy val oppositeScore = if (player0Turn) player1Score else player0Score
+  lazy val oppositeHidden = HiddenStatus(this, false)
 
   /**
    * Return the number of possible choices
@@ -71,12 +42,12 @@ case class Status(
   /**
    * Compute the score of player
    */
-  lazy val player0Score: Int = score(won0Cards)
+  lazy val playerScore: Int = score(wonCards)
 
   /**
    * Compute the score of opposite
    */
-  lazy val player1Score: Int = score(won1Cards)
+  lazy val oppositeScore: Int = score(lostCards)
 
   /**
    * Compute the score of a cards set
@@ -86,17 +57,17 @@ case class Status(
   /**
    * Return if the player wins the game
    */
-  lazy val isWinner0: Boolean = player0Score > 60
+  lazy val isWinner: Boolean = playerScore > 60
 
   /**
    * Return if the player wins the game
    */
-  lazy val isWinner1: Boolean = player1Score > 60
+  lazy val isLooser: Boolean = oppositeScore > 60
 
   /**
    *
    */
-  lazy val isDraw: Boolean = player0Score == 60 && player1Score == 60
+  lazy val isDraw: Boolean = playerScore == 60 && oppositeScore == 60
 
   /**
    * Return if the game is completed
@@ -106,174 +77,90 @@ case class Status(
   /**
    * Return if the result game is determined by now
    */
-  lazy val isDetermined: Boolean = isWinner0 || isWinner1 || isDraw
+  lazy val isDetermined: Boolean = isWinner || isLooser || isDraw
 
   /**
    * Generate the status when played a card
    */
   def nextStatus(choice: Int): Status =
-    if (player0Turn)
-      if (player0Cards.isEmpty)
-        this
-      else {
-        val card = player0Cards(choice)
-        if (played.isEmpty)
-          Status(
-            false,
-            player0Cards.filterNot(_ == card),
-            player1Cards,
-            won0Cards,
-            won1Cards,
-            Some(card),
-            trump,
-            deck)
-        else
-          (played.get.versus(card), deck.size) match {
-            // player 0 perde in finale
-            case (true, 0) => Status(
-              false,
-              player0Cards.filterNot(_ == card),
-              player1Cards,
-              won0Cards,
-              won1Cards + card + played.get,
-              None,
-              trump,
-              deck)
-
-            // player 0 perde last in-game
-            case (true, 1) => Status(
-              false,
-              player0Cards.filterNot(_ == card) :+ trump,
-              player1Cards :+ deck.head,
-              won0Cards,
-              won1Cards + card + played.get,
-              None,
-              trump,
-              Vector())
-
-            // player 0 perde in-game
-            case (true, _) => Status(
-              false,
-              player0Cards.filterNot(_ == card) :+ deck(1),
-              player1Cards :+ deck(0),
-              won0Cards,
-              won1Cards + card + played.get,
-              None,
-              trump,
-              deck.drop(2))
-
-            // player 0 vince in finale
-            case (false, 0) => Status(
-              true,
-              player0Cards.filterNot(_ == card),
-              player1Cards,
-              won0Cards + card + played.get,
-              won1Cards,
-              None,
-              trump,
-              deck)
-
-            // player 0 vince last in-game
-            case (false, 1) => Status(
-              true,
-              player0Cards.filterNot(_ == card) :+ deck.head,
-              player1Cards :+ trump,
-              won0Cards + card + played.get,
-              won1Cards,
-              None,
-              trump,
-              Vector())
-
-            // player 0 vince in-game
-            case (false, _) => Status(
-              true,
-              player0Cards.filterNot(_ == card) :+ deck(0),
-              player1Cards :+ deck(1),
-              won0Cards + card + played.get,
-              won1Cards,
-              None,
-              trump,
-              deck.drop(2))
-          }
-      }
-    else if (player1Cards.isEmpty)
+    if (playerCards.isEmpty)
       this
     else {
-      val card = player1Cards(choice)
+      val card = playerCards(choice)
       if (played.isEmpty)
         Status(
-          true,
-          player0Cards,
-          player1Cards.filterNot(_ == card),
-          won0Cards,
-          won1Cards,
+          !isPlayer0,
+          oppositeCards,
+          playerCards.filterNot(_ == card),
+          lostCards,
+          wonCards,
           Some(card),
           trump,
           deck)
       else
         (played.get.versus(card), deck.size) match {
-          // player 1 perde in finale
+          // player perde in finale
           case (true, 0) => Status(
-            true,
-            player0Cards,
-            player1Cards.filterNot(_ == card),
-            won0Cards + card + played.get,
-            won1Cards,
+            !isPlayer0,
+            oppositeCards,
+            playerCards.filterNot(_ == card),
+            lostCards + card + played.get,
+            wonCards,
             None,
             trump,
             deck)
 
-          // player 1 perde last in-game
+          // player 0 perde last in-game
           case (true, 1) => Status(
-            true,
-            player0Cards :+ deck.head,
-            player1Cards.filterNot(_ == card) :+ trump,
-            won0Cards + card + played.get,
-            won1Cards,
+            !isPlayer0,
+            oppositeCards :+ deck.head,
+            playerCards.filterNot(_ == card) :+ trump,
+            lostCards + card + played.get,
+            wonCards,
             None,
             trump,
             Vector())
 
-          // player 1 perde in-game
+          // player 0 perde in-game
           case (true, _) => Status(
-            true,
-            player0Cards :+ deck(0),
-            player1Cards.filterNot(_ == card) :+ deck(1),
-            won0Cards + card + played.get,
-            won1Cards,
+            !isPlayer0,
+            oppositeCards :+ deck(0),
+            playerCards.filterNot(_ == card) :+ deck(1),
+            lostCards + card + played.get,
+            wonCards,
             None,
             trump,
             deck.drop(2))
 
-          // player 1 vince in finale
+          // player 0 vince in finale
           case (false, 0) => Status(
-            false,
-            player0Cards,
-            player1Cards.filterNot(_ == card),
-            won0Cards,
-            won1Cards + card + played.get,
+            isPlayer0,
+            playerCards.filterNot(_ == card),
+            oppositeCards,
+            wonCards + card + played.get,
+            lostCards,
             None,
             trump,
             deck)
 
-          // player 1 vince last in-game
+          // player 0 vince last in-game
           case (false, 1) => Status(
-            false,
-            player0Cards :+ trump,
-            player1Cards.filterNot(_ == card) :+ deck.head,
-            won0Cards,
-            won1Cards + card + played.get,
+            isPlayer0,
+            playerCards.filterNot(_ == card) :+ deck.head,
+            oppositeCards :+ trump,
+            wonCards + card + played.get,
+            lostCards,
             None,
             trump,
             Vector())
 
-          // player 1 vince in-game
+          // player 0 vince in-game
           case (false, _) => Status(
-            false,
-            player0Cards :+ deck(1),
-            player1Cards.filterNot(_ == card) :+ deck(0),
-            won0Cards,
-            won1Cards + card + played.get,
+            isPlayer0,
+            playerCards.filterNot(_ == card) :+ deck(0),
+            oppositeCards :+ deck(1),
+            wonCards + card + played.get,
+            lostCards,
             None,
             trump,
             deck.drop(2))
