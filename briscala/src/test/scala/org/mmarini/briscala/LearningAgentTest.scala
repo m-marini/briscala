@@ -70,17 +70,24 @@ class LearningAgentTest extends FunSpec with Matchers {
         None,
         new Card(0),
         (7 to 39).map(new Card(_)))
+
       val hs = status.playerHidden
+
+      val samples = (0 to 2).map(i =>
+        (hs.afterState(i).statusFeatures, DenseVector(if (i == 1) 1.0 else 0.0))).toList
 
       def learnLoop(n: Int, agent: LearningAgent): LearningAgent =
         if (n <= 0)
           agent
         else {
-          val na = agent.learnV(hs.afterState(0).statusFeatures, DenseVector(0.0))
-            .learnV(hs.afterState(1).statusFeatures, DenseVector(1.0))
-            .learnV(hs.afterState(2).statusFeatures, DenseVector(0.0))
-            .update.clearTraces
-          learnLoop(n - 1, na)
+          def sampleLoop(list: List[(DenseVector[Double], DenseVector[Double])], agent: LearningAgent): LearningAgent =
+            list match {
+              case List() => agent
+              case (x, y) :: tail => sampleLoop(tail, agent.learnV(x, y) match {
+                case (na, _) => na
+              })
+            }
+          learnLoop(n - 1, sampleLoop(samples, agent).update.clearTraces)
         }
 
       val betterAgent = learnLoop(3000, agent)
@@ -120,16 +127,24 @@ class LearningAgentTest extends FunSpec with Matchers {
         Some(new Card(1)),
         new Card(0),
         (7 to 39).map(new Card(_)))
+
       val hs = status.playerHidden
+
+      val samples = (0 to 2).map(i =>
+        (hs.actionFeatures(i), DenseVector(if (i == 1) 1.0 else 0.0))).toList
 
       def learnLoop(n: Int, agent: LearningAgent): LearningAgent =
         if (n <= 0)
           agent
         else {
-          val na = agent.learnQ(hs.actionFeatures(0), DenseVector(0.0))
-            .learnQ(hs.actionFeatures(1), DenseVector(1.0))
-            .learnQ(hs.actionFeatures(2), DenseVector(0.0)).update.clearTraces
-          learnLoop(n - 1, na)
+          def sampleLoop(list: List[(DenseVector[Double], DenseVector[Double])], agent: LearningAgent): LearningAgent =
+            list match {
+              case List() => agent
+              case (x, y) :: tail => sampleLoop(tail, agent.learnQ(x, y) match {
+                case (na, _) => na
+              })
+            }
+          learnLoop(n - 1, sampleLoop(samples, agent).update.clearTraces)
         }
 
       val betterAgent = learnLoop(3000, agent)
