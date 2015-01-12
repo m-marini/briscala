@@ -22,7 +22,7 @@ class LearningAgentTest extends FunSpec with Matchers {
     val lambda = 0.8
     val random = randBiasis
 
-    val agent = LearningAgent.defaultAgent(hiddens, c, alpha, epsilonGreedy, lambda, random)
+    val agent = LearningAgent.defaultAgent(hiddens, c, alpha, 1, epsilonGreedy, lambda, random)
 
     describe("when saved") {
       agent.save("test.mat")
@@ -58,7 +58,7 @@ class LearningAgentTest extends FunSpec with Matchers {
     val lambda = 1.0
     val random = randBiasis
 
-    val agent = LearningAgent.rand(hiddens, c, alpha, epsilonGreedy, lambda, random)
+    val agent = LearningAgent.rand(hiddens, c, alpha, 1, lambda, epsilonGreedy, random)
 
     describe("when learnt for second action in status for first hand player") {
       val status = Status(

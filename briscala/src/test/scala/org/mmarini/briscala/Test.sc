@@ -30,6 +30,8 @@ object Test {
       }
     }                                             //> matchForRegex: (in: scalax.io.LongTraversable[String], regex: scala.util.mat
                                                   //| ching.Regex)Option[String]
+    
+    
 
   def loadRows(in: LongTraversable[String], array: Array[Double], offset: Int, size: Int): Some[(LongTraversable[String], Array[Double])] = ???
                                                   //> loadRows: (in: scalax.io.LongTraversable[String], array: Array[Double], offs
@@ -105,12 +107,11 @@ object Test {
                                                   //> in  : scalax.io.managed.SeekableByteChannelResource[scalax.io.SeekableByteC
                                                   //| hannel] = SeekableByteChannelResource(/home/us00852/git/briscala/briscala/t
                                                   //| est.mat)
-  val k = load(in.lines())                        //> Seeking for [# name: (\w*)] in - # name: vNet_w1
+  val k = load(in.lines())                        //> Seeking for [# name: (\w*)] in - # name: vw2
                                                   //| Matching for [# type: (\w*)] in - # type: matrix
                                                   //| Matching for [# rows: (\d*)] in - # rows: 3
-                                                  //| Matching for [# columns: (\d*)] in - # columns: 211
-                                                  //| k  : Map[String,Any] = Map(vNet_w1 -> 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.
-                                                  //| 0  0.0  0.0  0.0  0.0  ... (211 total)
-                                                  //| 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  ...
-                                                  //| 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  ...)
+                                                  //| Matching for [# columns: (\d*)] in - # columns: 4
+                                                  //| k  : Map[String,Any] = Map(vw2 -> 0.0  0.0  0.0  0.0  
+                                                  //| 0.0  0.0  0.0  0.0  
+                                                  //| 0.0  0.0  0.0  0.0  )
 }

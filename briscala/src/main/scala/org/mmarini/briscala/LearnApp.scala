@@ -15,19 +15,24 @@ import scalax.io.Resource
  */
 object LearnApp extends App {
 
+  val SaveInterval = 10000
+
   val n = argForInt("--n").getOrElse(1)
   val seed = argForInt("--seed")
   val c = argForDouble("--c").getOrElse(1e3)
-  val alpha = argForDouble("--alpha").getOrElse(1e-5)
-  val lambda = argForDouble("--lambda").getOrElse(0.0)
+  val alpha = argForDouble("--alpha").getOrElse(3e-6)
+  val lambda = argForDouble("--lambda").getOrElse(0.9)
   val epsilon = argForDouble("--epsilon").getOrElse(0.1)
-  val hiddens = argForInt("--hiddens").getOrElse(3)
+  val hiddens = argForInt("--hiddens").getOrElse(16)
+  val iterations = argForInt("--iter").getOrElse(5)
   val file = argFor("--file");
   val out = argFor("--out");
 
   val gen = new JDKRandomGenerator()
-  if (!seed.isEmpty)
+  if (!seed.isEmpty) {
+    println(s"Seed = $seed.get")
     gen.setSeed(seed.get);
+  }
 
   val random = new RandBasis(gen)
 
@@ -41,29 +46,48 @@ object LearnApp extends App {
   val filename = file.get
 
   val initAgent =
-    if (Path(filename).canRead)
-      LearningAgent.load(filename, c, alpha, epsilon, random)
-    else
-      LearningAgent.rand(hiddens, c, alpha, epsilon, lambda, random)
-
-  // Run learning
-  def loop(i: Int, agent: LearningAgent, costs: List[Double]): (LearningAgent, List[Double]) =
-    if (i <= 0)
-      (agent, costs)
-    else {
-      print(s"Game #${n - i}\r")
-      val (a, cost) = agent.learn
-      a.save(filename)
-      loop(i - 1, a, cost :: costs)
+    if (Path(filename).canRead) {
+      println(s"Loading $filename")
+      println(s" iterations = $iterations")
+      println(s"          c = $c")
+      println(s"      alpha = $alpha")
+      println(s"    epsilon = $epsilon")
+      LearningAgent.load(filename, c, alpha, iterations, epsilon, random)
+    } else {
+      println(s"Creating $filename")
+      println(s"    hiddens = $hiddens")
+      println(s" iterations = $iterations")
+      println(s"          c = $c")
+      println(s"      alpha = $alpha")
+      println(s"     lambda = $lambda")
+      println(s"    epsilon = $epsilon")
+      LearningAgent.rand(hiddens, c, alpha, iterations, lambda, epsilon, random)
     }
 
-  val (_, costs) = loop(n, initAgent, List())
+  // Run learning
+  def loop(i: Int, agent: LearningAgent, costs: List[Double], to: Long): (LearningAgent, List[Double]) =
+    if (i <= 0) {
+      agent.save(filename)
+      (agent, costs)
+    } else {
+      print(s"Game #${n - i}\r")
+      val (a, cost) = agent.learn
+      val now = System.currentTimeMillis()
+      val nto = if (now > to) {
+        a.save(filename)
+        now + SaveInterval
+      } else
+        to
+      loop(i - 1, a, cost :: costs, nto)
+    }
+
+  val (_, costs) = loop(n, initAgent, List(), 0)
 
   // Save costs
   if (!out.isEmpty) {
     println(s"Writing ${out.get}...")
     Path(out.get).deleteIfExists()
-    MathFile.save(Resource.fromFile(out.get), Map("cost" -> DenseVector(costs.toArray).toDenseMatrix.t))
+    MathFile.save(Resource.fromFile(out.get), Map("cost" -> DenseVector(costs.reverse.toArray).toDenseMatrix.t))
   }
 
   /**

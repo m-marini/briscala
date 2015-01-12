@@ -27,7 +27,9 @@ object Test {;import org.scalaide.worksheet.runtime.library.WorksheetSupport._; 
         case regex(value) => Some(value)
         case _ => None
       }
-    };System.out.println("""matchForRegex: (in: scalax.io.LongTraversable[String], regex: scala.util.matching.Regex)Option[String]""");$skip(145); 
+    };System.out.println("""matchForRegex: (in: scalax.io.LongTraversable[String], regex: scala.util.matching.Regex)Option[String]""");$skip(155); 
+    
+    
 
   def loadRows(in: LongTraversable[String], array: Array[Double], offset: Int, size: Int): Some[(LongTraversable[String], Array[Double])] = ???;System.out.println("""loadRows: (in: scalax.io.LongTraversable[String], array: Array[Double], offset: Int, size: Int)Some[(scalax.io.LongTraversable[String], Array[Double])]""");$skip(656); 
 
