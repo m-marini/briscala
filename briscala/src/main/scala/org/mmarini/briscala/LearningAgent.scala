@@ -13,7 +13,7 @@ import java.io.IOException
 /**
  *
  */
-class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningParameters, epsilonGreedy: Double, random: RandBasis) {
+class LearningAgent(val vNet: TracedNetwork, val qNet: TracedNetwork, parms: LearningParameters, epsilonGreedy: Double, random: RandBasis) {
 
   private val greedyProb = new Bernoulli(epsilonGreedy, random)
 
@@ -45,7 +45,7 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
         val d = (qNet(samples._1) - samples._2)
         err + d.t * d
       })
-    })
+    }) / (19 * 2)
   }
 
   /**
@@ -118,7 +118,7 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
     //generate state features for players
     val vx0 = p0.map { case (s, a) => (s.oppositeHidden.statusFeatures, r1) }
     val vx1 = p1.map { case (s, a) => (s.oppositeHidden.statusFeatures, r0) }
-    (List(vx0, vx1), List(qx0, qx1))
+    (List(vx0.reverse, vx1.reverse), List(qx0.reverse, qx1.reverse))
   }
 
   /**
@@ -131,7 +131,7 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
       if (i <= 0)
         acc
       else {
-        val (a, c, e) = acc
+        val (a, _, _) = acc
         val acc1 = vSamples.foldLeft(a, 0.0, 0.0)((acc: (LearningAgent, Double, Double), samples: List[Sample]) => {
           val (a, c, e) = acc
           a.learnV(samples) match {
@@ -146,24 +146,28 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
         })
       }
 
-    loop((this, 0.0, 0.0), parms.learnIterations)
+    loop((this, 0.0, 0.0), parms.learnIterations) match {
+      case (a, c, e) => (a, c / (19 * 2), e / (19 * 2))
+    }
   }
 
   /**
    *
    */
-  def learnV(samples: List[Sample]): (LearningAgent, Double, Double) = {
-    val (net, cost, err) = vNet.learn(samples, parms.c)
-    (new LearningAgent(net.update(parms.alpha).clearTraces, qNet, parms, epsilonGreedy, random), cost, err)
-  }
+  def learnV(samples: List[Sample]): (LearningAgent, Double, Double) =
+    vNet.learn(samples, parms.c) match {
+      case (net, cost, err) =>
+        (new LearningAgent(net.update(parms.alpha).clearTraces, qNet, parms, epsilonGreedy, random), cost, err)
+    }
 
   /**
    *
    */
-  def learnQ(samples: List[Sample]): (LearningAgent, Double, Double) = {
-    val (net, cost, err) = qNet.learn(samples, parms.c)
-    (new LearningAgent(vNet, net.update(parms.alpha).clearTraces, parms, epsilonGreedy, random), cost, err)
-  }
+  def learnQ(samples: List[Sample]): (LearningAgent, Double, Double) =
+    qNet.learn(samples, parms.c) match {
+      case (net, cost, err) =>
+        (new LearningAgent(vNet, net.update(parms.alpha).clearTraces, parms, epsilonGreedy, random), cost, err)
+    }
 
   /**
    *

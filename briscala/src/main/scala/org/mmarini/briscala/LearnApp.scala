@@ -1,6 +1,7 @@
 package org.mmarini.briscala
 
 import scala.util.Random
+import scala.math._
 import scalax.file.Path
 import scalax.io.JavaConverters.asOutputUnmanagedConverter
 import scalax.io.Output
@@ -14,19 +15,18 @@ import scalax.io.Resource
  *
  */
 object LearnApp extends App {
-
-  val SaveInterval = 10000
-
-  val n = argForInt("--n").getOrElse(1)
+  val n = argForInt("--n").getOrElse(1000)
+  val train = argForInt("--train").getOrElse(100)
+  val test = argForInt("--test").getOrElse(50)
   val seed = argForInt("--seed")
   val c = argForDouble("--c").getOrElse(1e3)
   val alpha = argForDouble("--alpha").getOrElse(3e-6)
-  val lambda = argForDouble("--lambda").getOrElse(0.9)
+  val lambda = argForDouble("--lambda").getOrElse(0.8)
   val epsilon = argForDouble("--epsilon").getOrElse(0.1)
   val hiddens = argForInt("--hiddens").getOrElse(16)
   val iterations = argForInt("--iter").getOrElse(5)
-  val file = argFor("--file");
-  val out = argFor("--out");
+  val file = argFor("--file").getOrElse("networks.mat");
+  val out = argFor("--out").getOrElse("out.mat");
 
   val gen = new JDKRandomGenerator()
   if (!seed.isEmpty) {
@@ -43,18 +43,16 @@ object LearnApp extends App {
   if (file.isEmpty)
     throw new Error("Missing file")
 
-  val filename = file.get
-
   val initAgent =
-    if (Path(filename).canRead) {
-      println(s"Loading $filename")
+    if (Path(file).canRead) {
+      println(s"Loading $file")
       println(s" iterations = $iterations")
       println(s"          c = $c")
       println(s"      alpha = $alpha")
       println(s"    epsilon = $epsilon")
-      LearningAgent.load(filename, c, alpha, iterations, epsilon, random)
+      LearningAgent.load(file, c, alpha, iterations, epsilon, random)
     } else {
-      println(s"Creating $filename")
+      println(s"Creating $file")
       println(s"    hiddens = $hiddens")
       println(s" iterations = $iterations")
       println(s"          c = $c")
@@ -64,33 +62,60 @@ object LearnApp extends App {
       LearningAgent.rand(hiddens, c, alpha, iterations, lambda, epsilon, random)
     }
 
-  // Run learning
-  def loop(i: Int, ctx: (LearningAgent, List[Double], List[Double]), to: Long): (LearningAgent, List[Double], List[Double]) = if (i <= 0) {
-    ctx._1.save(filename)
+  println()
+
+  def kpiLoop(i: Int, ctx: (LearningAgent, List[(Double, Double, Double)])): (LearningAgent, List[(Double, Double, Double)]) = if (i <= 0)
     ctx
-  } else {
-    val (a, costs, errs) = ctx
-    print(s"Game #${n - i}\r")
-    val (a1, cost, err) = a.learn
-    val now = System.currentTimeMillis()
-    val nto = if (now > to) {
-      a.save(filename)
-      now + SaveInterval
-    } else
-      to
-    loop(i - 1, (a1, cost :: costs, err :: errs), nto)
+  else {
+
+    def trainLoop(j: Int, ctx: (LearningAgent, Double, Double)): (LearningAgent, Double, Double) = if (j <= 0)
+      ctx
+    else {
+      print(s"Training #${train - j + (n / train - i) * train + 1}\r")
+      val (a, cost, err) = ctx
+      trainLoop(j - 1, a.learn match {
+        case (a1, c1, e1) => (a1, cost + c1, err + e1)
+      })
+    }
+
+    val (a, kpis) = ctx
+    val (a1, cost, trainErr) = trainLoop(train, (a, 0.0, 0.0))
+
+    def testErrors(i: Int, err: Double): Double = if (i <= 0)
+      err
+    else {
+      print(s"Testing #${test - i + 1}\r")
+      testErrors(i - 1, err + a1.play)
+    }
+
+    a1.save(file)
+
+    println()
+    val kpi = (cost / train,
+      sqrt(trainErr / train),
+      sqrt(testErrors(test, 0.0) / test))
+
+    println()
+    println(s"Cost=${kpi._1}, Training error=${kpi._2}, Test error=${kpi._3}")
+
+    kpiLoop(i - 1, (a1, kpi :: kpis))
   }
 
-  val (_, costs, errs) = loop(n, (initAgent, List(), List()), 0)
+  println(s"Training $n total samples")
+  println(s"         $train training samples")
+  println(s"         $test test samples")
+
+  val (costs, trainErrs, testErrs) = kpiLoop(n / train, (initAgent, List())) match {
+    case (_, kpis) => kpis.unzip3
+  }
 
   // Save costs
-  if (!out.isEmpty) {
-    println(s"Writing ${out.get}...")
-    Path(out.get).deleteIfExists()
-    MathFile.save(Resource.fromFile(out.get),
-      Map(("costs" -> DenseVector(costs.reverse.toArray).toDenseMatrix.t),
-        ("errs" -> DenseVector(errs.reverse.toArray).toDenseMatrix.t)))
-  }
+  println(s"Writing ${out}...")
+  Path(out).deleteIfExists()
+  MathFile.save(Resource.fromFile(out),
+    Map(("costs" -> DenseVector(costs.reverse.toArray).toDenseMatrix.t),
+      ("trainErrs" -> DenseVector(trainErrs.reverse.toArray).toDenseMatrix.t),
+      ("testErrs" -> DenseVector(testErrs.reverse.toArray).toDenseMatrix.t)))
 
   /**
    *

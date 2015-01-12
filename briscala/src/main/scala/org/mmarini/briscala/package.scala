@@ -41,9 +41,9 @@ package object briscala {
   type ActionValue = Map[(IndexedSeq[CardState.Value], Card), (Int, Int)]
 
   type DVector = DenseVector[Double]
-  
+
   type DMatrix = DenseMatrix[Double]
-  
+
   type Sample = (DVector, DVector)
 
 }

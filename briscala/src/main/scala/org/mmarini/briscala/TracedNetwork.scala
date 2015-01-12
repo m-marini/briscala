@@ -22,8 +22,6 @@ import scalax.io.LongTraversable
  */
 class TracedNetwork(val w1: DMatrix, val w2: DMatrix, val w3: DMatrix, e1: DMatrix, e2: DMatrix, e3: DMatrix, val lambda: Double) extends Network(w1, w2, w3) {
 
-  import TracedNetwork.one
-
   /**
    *
    */
@@ -82,8 +80,6 @@ class TracedNetwork(val w1: DMatrix, val w2: DMatrix, val w3: DMatrix, e1: DMatr
  *
  */
 object TracedNetwork {
-  private val one = DenseVector.ones[Double](1)
-
   /**
    *
    */
