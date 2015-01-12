@@ -65,29 +65,31 @@ object LearnApp extends App {
     }
 
   // Run learning
-  def loop(i: Int, agent: LearningAgent, costs: List[Double], to: Long): (LearningAgent, List[Double]) =
-    if (i <= 0) {
-      agent.save(filename)
-      (agent, costs)
-    } else {
-      print(s"Game #${n - i}\r")
-      val (a, cost) = agent.learn
-      val now = System.currentTimeMillis()
-      val nto = if (now > to) {
-        a.save(filename)
-        now + SaveInterval
-      } else
-        to
-      loop(i - 1, a, cost :: costs, nto)
-    }
+  def loop(i: Int, ctx: (LearningAgent, List[Double], List[Double]), to: Long): (LearningAgent, List[Double], List[Double]) = if (i <= 0) {
+    ctx._1.save(filename)
+    ctx
+  } else {
+    val (a, costs, errs) = ctx
+    print(s"Game #${n - i}\r")
+    val (a1, cost, err) = a.learn
+    val now = System.currentTimeMillis()
+    val nto = if (now > to) {
+      a.save(filename)
+      now + SaveInterval
+    } else
+      to
+    loop(i - 1, (a1, cost :: costs, err :: errs), nto)
+  }
 
-  val (_, costs) = loop(n, initAgent, List(), 0)
+  val (_, costs, errs) = loop(n, (initAgent, List(), List()), 0)
 
   // Save costs
   if (!out.isEmpty) {
     println(s"Writing ${out.get}...")
     Path(out.get).deleteIfExists()
-    MathFile.save(Resource.fromFile(out.get), Map("cost" -> DenseVector(costs.reverse.toArray).toDenseMatrix.t))
+    MathFile.save(Resource.fromFile(out.get),
+      Map(("costs" -> DenseVector(costs.reverse.toArray).toDenseMatrix.t),
+        ("errs" -> DenseVector(errs.reverse.toArray).toDenseMatrix.t)))
   }
 
   /**

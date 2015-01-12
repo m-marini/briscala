@@ -37,12 +37,14 @@ class TracedNetworkPropTest extends PropSpec with PropertyChecks with Matchers {
   property("The cost of traced network should not increase learning step by step") {
     forAll((pGen, "p"), (xGen, "x"), (yGen, "y"), (cGen, "c")) { (p, x, y, c) =>
       {
+        val sample = (x, y)
         val alpha = 1e-3;
         val lambda = 0.0;
         val n = 100;
+
         def loop(i: Int, net: TracedNetwork, prevCost: Double): Unit =
           if (i > 0) {
-            val (n1, cost) = net.learn(x, y, c)
+            val (n1, cost, _) = net.learn(sample, c)
             withClue(s"at step #${n - i + 1}: ") {
               cost should be <= prevCost
             }

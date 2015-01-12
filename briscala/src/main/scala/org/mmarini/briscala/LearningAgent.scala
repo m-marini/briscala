@@ -20,7 +20,7 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
   /**
    *
    */
-  def learn: (LearningAgent, Double) = improve(createGame)
+  def learn: (LearningAgent, Double, Double) = improve(createGame)
 
   /**
    *
@@ -93,18 +93,13 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
     else
       qNet(s.playerHidden actionFeatures (action))(0)
 
-  type Sample = (DenseVector[Double], DenseVector[Double])
-
-  import LearningAgent.One
-  import LearningAgent.Zero
-
   /**
    *
    */
   def extrapolateSamples(game: List[(Status, Option[Int])]): (List[List[Sample]], List[List[Sample]]) = {
 
     // remove banal step (the ones with no choice or first hand steps)
-    val noBanalSteps = game.filter { case (step, _) => step.numOfChoice > 1 && !step.played.isEmpty }
+    val noBanalSteps = game.filter { case (step, _) => step.numOfChoice > 1 && !step.isFirstHand }
     // Split to player0 hand steps and player1 hand step
     val (p0, p1) = noBanalSteps.partition { case (step, _) => step.isPlayer0 }
 
@@ -129,93 +124,46 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
   /**
    *
    */
-  def improve(game: List[(Status, Option[Int])]): (LearningAgent, Double) = {
-    // remove banal step (the ones with no choice or first hand steps)
-    val noBanalSteps = game.filter { case (step, _) => step.numOfChoice > 1 && !step.played.isEmpty }
-    // Split to player0 hand steps and player1 hand step
-    val (p0, p1) = noBanalSteps.partition { case (step, _) => step.isPlayer0 }
-
-    //generate returns for players
-    val (finalState, _) = game.head
-    val winner = DenseVector(if (finalState.isWinner) 1.0 else 0.0)
-    val looser = DenseVector(if (finalState.isLooser) 1.0 else 0.0)
-
-    val r0 = if (finalState.isPlayer0) winner else looser
-    val r1 = if (!finalState.isPlayer0) winner else looser
-
-    //generate action features for player
-    val qx0 = p0.map { case (s, a) => (s.playerHidden.actionFeatures(a.get), r0) }
-    val qx1 = p1.map { case (s, a) => (s.playerHidden.actionFeatures(a.get), r1) }
-
-    //generate state features for players
-    val vx0 = p0.map { case (s, a) => (s.oppositeHidden.statusFeatures, r1) }
-    val vx1 = p1.map { case (s, a) => (s.oppositeHidden.statusFeatures, r0) }
-
+  def improve(game: List[(Status, Option[Int])]): (LearningAgent, Double, Double) = {
     val (vSamples, qSamples) = extrapolateSamples(game)
 
-    def learnV(acc: (LearningAgent, Double), sample: (DenseVector[Double], DenseVector[Double])): (LearningAgent, Double) = {
-      val (agent, cost) = acc
-      sample match {
-        case (x, y) => agent.learnV(x, y) match {
-          case (ag2, cost2) => (ag2, cost + cost2)
-        }
-      }
-    }
-
-    def learnQ(acc: (LearningAgent, Double), sample: (DenseVector[Double], DenseVector[Double])): (LearningAgent, Double) = {
-      val (agent, cost) = acc
-      sample match {
-        case (x, y) => agent.learnQ(x, y) match {
-          case (ag2, cost2) => (ag2, cost + cost2)
-        }
-      }
-    }
-
-    def loop(a: LearningAgent, cost: Double, i: Int): (LearningAgent, Double) =
+    def loop(acc: (LearningAgent, Double, Double), i: Int): (LearningAgent, Double, Double) =
       if (i <= 0)
-        (a, cost)
+        acc
       else {
-        val (ag1, cost1) = (vSamples.foldLeft(a, 0.0))((acc: (LearningAgent, Double), samples: List[Sample]) => {
-          val (a, c) = (samples.reverse.foldLeft(acc))(learnV)
-          (a.update.clearTraces, c)
+        val (a, c, e) = acc
+        val acc1 = vSamples.foldLeft(a, 0.0, 0.0)((acc: (LearningAgent, Double, Double), samples: List[Sample]) => {
+          val (a, c, e) = acc
+          a.learnV(samples) match {
+            case (a1, c1, e1) => (a1, c + c1, e + e1)
+          }
         })
-        val (ag2, cost2) = (qSamples.foldLeft(ag1, 0.0))((acc: (LearningAgent, Double), samples: List[Sample]) => {
-          val (a, c) = (samples.reverse.foldLeft(acc))(learnQ)
-          (a.update.clearTraces, c)
+        qSamples.foldLeft(acc1)((acc: (LearningAgent, Double, Double), samples: List[Sample]) => {
+          val (a, c, e) = acc
+          a.learnQ(samples) match {
+            case (a1, c1, e1) => (a1, c + c1, e + e1)
+          }
         })
-        loop(ag2, cost2, i - 1)
       }
 
-    loop(this, 0.0, parms.learnIterations)
+    loop((this, 0.0, 0.0), parms.learnIterations)
   }
 
   /**
    *
    */
-  def learnV(x: DenseVector[Double], y: DenseVector[Double]): (LearningAgent, Double) = {
-    val (nv, cost) = vNet.learn(x, y, parms.c)
-    (new LearningAgent(nv, qNet, parms, epsilonGreedy, random), cost)
+  def learnV(samples: List[Sample]): (LearningAgent, Double, Double) = {
+    val (net, cost, err) = vNet.learn(samples, parms.c)
+    (new LearningAgent(net.update(parms.alpha).clearTraces, qNet, parms, epsilonGreedy, random), cost, err)
   }
 
   /**
    *
    */
-  def learnQ(x: DenseVector[Double], y: DenseVector[Double]): (LearningAgent, Double) = {
-    val (nq, cost) = qNet.learn(x, y, parms.c)
-    (new LearningAgent(vNet, nq, parms, epsilonGreedy, random), cost)
+  def learnQ(samples: List[Sample]): (LearningAgent, Double, Double) = {
+    val (net, cost, err) = qNet.learn(samples, parms.c)
+    (new LearningAgent(vNet, net.update(parms.alpha).clearTraces, parms, epsilonGreedy, random), cost, err)
   }
-
-  /**
-   *
-   */
-  def update: LearningAgent =
-    new LearningAgent(vNet.update(parms.alpha), qNet.update(parms.alpha), parms, epsilonGreedy, random)
-
-  /**
-   *
-   */
-  def clearTraces: LearningAgent =
-    new LearningAgent(vNet.clearTraces, qNet.clearTraces, parms, epsilonGreedy, random)
 
   /**
    *
@@ -235,10 +183,6 @@ class LearningAgent(vNet: TracedNetwork, qNet: TracedNetwork, parms: LearningPar
 }
 
 object LearningAgent {
-
-  val One = DenseVector(1.0)
-  val Zero = DenseVector(0.0)
-
   /**
    *
    */
@@ -273,14 +217,14 @@ object LearningAgent {
       throw new IOException("Missing variables")
     else {
       val vNet = new TracedNetwork(
-        vars("vw1").asInstanceOf[DenseMatrix[Double]],
-        vars("vw2").asInstanceOf[DenseMatrix[Double]],
-        vars("vw3").asInstanceOf[DenseMatrix[Double]],
+        vars("vw1").asInstanceOf[DMatrix],
+        vars("vw2").asInstanceOf[DMatrix],
+        vars("vw3").asInstanceOf[DMatrix],
         vars("vLambda").asInstanceOf[Double])
       val qNet = new TracedNetwork(
-        vars("qw1").asInstanceOf[DenseMatrix[Double]],
-        vars("qw2").asInstanceOf[DenseMatrix[Double]],
-        vars("qw3").asInstanceOf[DenseMatrix[Double]],
+        vars("qw1").asInstanceOf[DMatrix],
+        vars("qw2").asInstanceOf[DMatrix],
+        vars("qw3").asInstanceOf[DMatrix],
         vars("qLambda").asInstanceOf[Double])
       new LearningAgent(vNet, qNet, LearningParameters(c, alpha, learnIterations), epsilonGreedy, random)
     }

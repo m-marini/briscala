@@ -17,14 +17,14 @@ import breeze.stats.distributions.Uniform
  * @author us00852
  *
  */
-class BackPropagationNetwork(w1: DenseMatrix[Double], w2: DenseMatrix[Double], w3: DenseMatrix[Double]) extends Network(w1, w2, w3) {
+class BackPropagationNetwork(w1: DMatrix, w2: DMatrix, w3: DMatrix) extends Network(w1, w2, w3) {
 
   /**
    *
    */
-  def learn(x: DenseVector[Double], y: DenseVector[Double], c: Double, alpha: Double): (BackPropagationNetwork, Double) = {
-    val (cost, (g1, g2, g3)) = costAndGrad(x, y, c)
-    (new BackPropagationNetwork(w1 - g1 * alpha, w2 - g2 * alpha, w3 - g3 * alpha), cost)
+  def learn(sample: Sample, c: Double, alpha: Double): (BackPropagationNetwork, Double, Double) = {
+    val (cost, err, (g1, g2, g3)) = costAndGrad(sample, c)
+    (new BackPropagationNetwork(w1 - g1 * alpha, w2 - g2 * alpha, w3 - g3 * alpha), cost, err)
   }
 }
 

@@ -79,16 +79,8 @@ class LearningAgentTest extends FunSpec with Matchers {
       def learnLoop(n: Int, agent: LearningAgent): LearningAgent =
         if (n <= 0)
           agent
-        else {
-          def sampleLoop(list: List[(DenseVector[Double], DenseVector[Double])], agent: LearningAgent): LearningAgent =
-            list match {
-              case List() => agent
-              case (x, y) :: tail => sampleLoop(tail, agent.learnV(x, y) match {
-                case (na, _) => na
-              })
-            }
-          learnLoop(n - 1, sampleLoop(samples, agent).update.clearTraces)
-        }
+        else
+          learnLoop(n - 1, agent.learnV(samples)._1)
 
       val betterAgent = learnLoop(3000, agent)
 
@@ -136,16 +128,8 @@ class LearningAgentTest extends FunSpec with Matchers {
       def learnLoop(n: Int, agent: LearningAgent): LearningAgent =
         if (n <= 0)
           agent
-        else {
-          def sampleLoop(list: List[(DenseVector[Double], DenseVector[Double])], agent: LearningAgent): LearningAgent =
-            list match {
-              case List() => agent
-              case (x, y) :: tail => sampleLoop(tail, agent.learnQ(x, y) match {
-                case (na, _) => na
-              })
-            }
-          learnLoop(n - 1, sampleLoop(samples, agent).update.clearTraces)
-        }
+        else
+          learnLoop(n - 1, agent.learnQ(samples)._1)
 
       val betterAgent = learnLoop(3000, agent)
 

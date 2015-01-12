@@ -20,14 +20,14 @@ import scalax.io.LongTraversable
  * @author us00852
  *
  */
-class TracedNetwork(val w1: DenseMatrix[Double], val w2: DenseMatrix[Double], val w3: DenseMatrix[Double], e1: DenseMatrix[Double], e2: DenseMatrix[Double], e3: DenseMatrix[Double], val lambda: Double) extends Network(w1, w2, w3) {
+class TracedNetwork(val w1: DMatrix, val w2: DMatrix, val w3: DMatrix, e1: DMatrix, e2: DMatrix, e3: DMatrix, val lambda: Double) extends Network(w1, w2, w3) {
 
   import TracedNetwork.one
 
   /**
    *
    */
-  def this(w1: DenseMatrix[Double], w2: DenseMatrix[Double], w3: DenseMatrix[Double], lambda: Double) =
+  def this(w1: DMatrix, w2: DMatrix, w3: DMatrix, lambda: Double) =
     this(w1, w2, w3,
       DenseMatrix.zeros(w1.rows, w1.cols),
       DenseMatrix.zeros(w2.rows, w2.cols),
@@ -38,15 +38,26 @@ class TracedNetwork(val w1: DenseMatrix[Double], val w2: DenseMatrix[Double], va
    * Learn an output for a given input.
    * It creates a new network with eligibility traces updated and the current cost value
    */
-  def learn(x: DenseVector[Double], y: DenseVector[Double], c: Double): (TracedNetwork, Double) = {
-    val (cost, (g1, g2, g3)) = costAndGrad(x, y, c)
+  def learn(sample: Sample, c: Double): (TracedNetwork, Double, Double) = {
+    val (cost, err, (g1, g2, g3)) = costAndGrad(sample, c)
     (new TracedNetwork(w1, w2, w3,
       e1 * lambda - g1,
       e2 * lambda - g2,
       e3 * lambda - g3,
       lambda),
-      cost)
+      cost, err)
   }
+
+  /**
+   * Learn an output for a given input.
+   * It creates a new network with eligibility traces updated and the current cost value
+   */
+  def learn(samples: List[(DVector, DVector)], c: Double): (TracedNetwork, Double, Double) =
+    samples.foldLeft(this, 0.0, 0.0)((acc: (TracedNetwork, Double, Double), sample: (DVector, DVector)) => {
+      val (net, cost, err) = acc
+      val (n1, c1, e) = net.learn(sample, c)
+      (n1, cost + c1, err + e)
+    })
 
   /**
    * Update the network with the eligibility traces.

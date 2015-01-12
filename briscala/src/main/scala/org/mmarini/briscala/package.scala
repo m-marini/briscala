@@ -1,6 +1,11 @@
 package org.mmarini
 
+import breeze.linalg.DenseVector
+import breeze.linalg.DenseMatrix
+
 package object briscala {
+  val One = DenseVector.ones[Double](1)
+  val Zero = DenseVector.zeros[Double](1)
 
   object Seed extends Enumeration {
     val Trump = Value("Trump")
@@ -34,4 +39,11 @@ package object briscala {
   type StateValue = Map[IndexedSeq[CardState.Value], (Int, Int)]
 
   type ActionValue = Map[(IndexedSeq[CardState.Value], Card), (Int, Int)]
+
+  type DVector = DenseVector[Double]
+  
+  type DMatrix = DenseMatrix[Double]
+  
+  type Sample = (DVector, DVector)
+
 }

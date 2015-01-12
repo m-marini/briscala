@@ -42,19 +42,21 @@ class NetworkPropTest extends PropSpec with PropertyChecks with Matchers {
         val w2 = DenseMatrix((p(3), p(4)))
         val w3 = DenseMatrix((p(5), p(6)))
 
-        val (cost, grad) = new Network(w1, w2, w3).costAndGrad(x, y, c)
+        val sample = (x, y)
+
+        val (cost, _, grad) = new Network(w1, w2, w3).costAndGrad(sample, c)
 
         val epsilon = 1e-5;
 
-        val (cost1, _) = new Network(DenseMatrix((p(0) + epsilon, p(1), p(2))), w2, w3).costAndGrad(x, y, c)
-        val (cost2, _) = new Network(DenseMatrix((p(0), p(1) + epsilon, p(2))), w2, w3).costAndGrad(x, y, c)
-        val (cost3, _) = new Network(DenseMatrix((p(0), p(1), p(2) + epsilon)), w2, w3).costAndGrad(x, y, c)
+        val (cost1, _, _) = new Network(DenseMatrix((p(0) + epsilon, p(1), p(2))), w2, w3).costAndGrad(sample, c)
+        val (cost2, _, _) = new Network(DenseMatrix((p(0), p(1) + epsilon, p(2))), w2, w3).costAndGrad(sample, c)
+        val (cost3, _, _) = new Network(DenseMatrix((p(0), p(1), p(2) + epsilon)), w2, w3).costAndGrad(sample, c)
 
-        val (cost4, _) = new Network(w1, DenseMatrix((p(3) + epsilon, p(4))), w3).costAndGrad(x, y, c)
-        val (cost5, _) = new Network(w1, DenseMatrix((p(3), p(4) + epsilon)), w3).costAndGrad(x, y, c)
+        val (cost4, _, _) = new Network(w1, DenseMatrix((p(3) + epsilon, p(4))), w3).costAndGrad(sample, c)
+        val (cost5, _, _) = new Network(w1, DenseMatrix((p(3), p(4) + epsilon)), w3).costAndGrad(sample, c)
 
-        val (cost6, _) = new Network(w1, w2, DenseMatrix((p(5) + epsilon, p(6)))).costAndGrad(x, y, c)
-        val (cost7, _) = new Network(w1, w2, DenseMatrix((p(5), p(6) + epsilon))).costAndGrad(x, y, c)
+        val (cost6, _, _) = new Network(w1, w2, DenseMatrix((p(5) + epsilon, p(6)))).costAndGrad(sample, c)
+        val (cost7, _, _) = new Network(w1, w2, DenseMatrix((p(5), p(6) + epsilon))).costAndGrad(sample, c)
 
         val c1 = DenseVector(cost1, cost2, cost3, cost4, cost5, cost6, cost7)
         val cs = DenseVector.fill(7) { cost }
@@ -80,11 +82,13 @@ class NetworkPropTest extends PropSpec with PropertyChecks with Matchers {
   property("The cost should not increase learning step by step") {
     forAll((pGen, "p"), (xGen, "x"), (yGen, "y"), (cGen, "c")) { (p, x, y, c) =>
       {
-        val alpha = 1e-3;
+        val alpha = 1e-4;
         val n = 100;
+        val sample = (x, y)
+
         def loop(i: Int, net: BackPropagationNetwork, prevCost: Double): Unit =
           if (i > 0) {
-            val (newNet, cost) = net.learn(x, y, c, alpha)
+            val (newNet, cost, _) = net.learn(sample, c, alpha)
             withClue(s"at step #${n - i + 1}: ") {
               cost should be <= prevCost
             }
