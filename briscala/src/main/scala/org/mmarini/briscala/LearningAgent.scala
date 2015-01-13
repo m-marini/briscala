@@ -13,9 +13,7 @@ import java.io.IOException
 /**
  *
  */
-class LearningAgent(val vNet: TracedNetwork, val qNet: TracedNetwork, parms: LearningParameters, epsilonGreedy: Double, random: RandBasis) {
-
-  private val greedyProb = new Bernoulli(epsilonGreedy, random)
+class LearningAgent(policy: Policy, parms: LearningParameters, learningIter: Int, random: RandBasis) {
 
   /**
    *
@@ -33,19 +31,9 @@ class LearningAgent(val vNet: TracedNetwork, val qNet: TracedNetwork, parms: Lea
   def computeErrors(game: List[(Status, Option[Int])]): Double = {
     val (vSamples, qSamples) = extrapolateSamples(game)
 
-    val vErr = vSamples.foldLeft(0.0)((err: Double, samples: List[Sample]) => {
-      samples.foldLeft(err)((err: Double, samples: Sample) => {
-        val d = (vNet(samples._1) - samples._2)
-        err + d.t * d
-      })
-    })
+    val vErr = vSamples.foldLeft(0.0)((err, samples) => err + policy.errV(samples))
 
-    qSamples.foldLeft(vErr)((err: Double, samples: List[Sample]) => {
-      samples.foldLeft(err)((err: Double, samples: Sample) => {
-        val d = (qNet(samples._1) - samples._2)
-        err + d.t * d
-      })
-    }) / (19 * 2)
+    qSamples.foldLeft(vErr)((err, samples) => err + policy.errQ(samples)) / (19 * 2)
   }
 
   /**
@@ -56,42 +44,12 @@ class LearningAgent(val vNet: TracedNetwork, val qNet: TracedNetwork, parms: Lea
       if (s.isCompleted)
         (s, None) :: l
       else {
-        val c = selectAction(s)
-        next((s, Some(c)) :: l, s.playerHidden.next(c))
+        val h = s.playerHidden
+        val c = policy.selectAction(h)
+        next((s, Some(c)) :: l, h.next(c))
       }
     next(List(), Game.createInitStatus(random))
   }
-
-  /**
-   *
-   */
-  def selectAction(s: Status): Int =
-    if (s.numOfChoice == 1)
-      0
-    else if (greedyProb.draw)
-      selectActionExploring(s)
-    else
-      selectActionExploiting(s)
-
-  /**
-   *
-   */
-  def selectActionExploring(s: Status): Int = random.randInt(s.numOfChoice).draw
-
-  /**
-   *
-   */
-  def selectActionExploiting(s: Status): Int =
-    valueByAction(s).zipWithIndex.maxBy { case (v, _) => v }._2
-
-  /**
-   *
-   */
-  def valueByAction(s: Status): IndexedSeq[Double] =
-    for (action <- 0 until s.numOfChoice) yield if (s.played.isEmpty)
-      vNet(s.playerHidden.afterState(action).statusFeatures)(0)
-    else
-      qNet(s.playerHidden actionFeatures (action))(0)
 
   /**
    *
@@ -127,110 +85,32 @@ class LearningAgent(val vNet: TracedNetwork, val qNet: TracedNetwork, parms: Lea
   def improve(game: List[(Status, Option[Int])]): (LearningAgent, Double, Double) = {
     val (vSamples, qSamples) = extrapolateSamples(game)
 
-    def loop(acc: (LearningAgent, Double, Double), i: Int): (LearningAgent, Double, Double) =
+    def loop(ctx: (Policy, Double, Double), i: Int): (Policy, Double, Double) =
       if (i <= 0)
-        acc
+        ctx
       else {
-        val (a, _, _) = acc
-        val acc1 = vSamples.foldLeft(a, 0.0, 0.0)((acc: (LearningAgent, Double, Double), samples: List[Sample]) => {
-          val (a, c, e) = acc
-          a.learnV(samples) match {
-            case (a1, c1, e1) => (a1, c + c1, e + e1)
+        val (a, _, _) = ctx
+        val ctx1 = vSamples.foldLeft(a, 0.0, 0.0)((ctx, samples) => {
+          val (policy, cost, err) = ctx
+          policy.learnV(samples, parms) match {
+            case (p, c, e) => (p, c + cost, e + err)
           }
         })
-        qSamples.foldLeft(acc1)((acc: (LearningAgent, Double, Double), samples: List[Sample]) => {
-          val (a, c, e) = acc
-          a.learnQ(samples) match {
-            case (a1, c1, e1) => (a1, c + c1, e + e1)
+        qSamples.foldLeft(ctx)((ctx, samples) => {
+          val (policy, cost, err) = ctx
+          policy.learnQ(samples, parms) match {
+            case (p, c, e) => (p, c + cost, e + cost)
           }
         })
       }
 
-    loop((this, 0.0, 0.0), parms.learnIterations) match {
-      case (a, c, e) => (a, c / (19 * 2), e / (19 * 2))
+    loop((policy, 0.0, 0.0), learningIter) match {
+      case (a, c, e) => (new LearningAgent(policy, parms, learningIter, random), c / (19 * 2), e / (19 * 2))
     }
   }
 
   /**
    *
    */
-  def learnV(samples: List[Sample]): (LearningAgent, Double, Double) =
-    vNet.learn(samples, parms.c) match {
-      case (net, cost, err) =>
-        (new LearningAgent(net.update(parms.alpha).clearTraces, qNet, parms, epsilonGreedy, random), cost, err)
-    }
-
-  /**
-   *
-   */
-  def learnQ(samples: List[Sample]): (LearningAgent, Double, Double) =
-    qNet.learn(samples, parms.c) match {
-      case (net, cost, err) =>
-        (new LearningAgent(vNet, net.update(parms.alpha).clearTraces, parms, epsilonGreedy, random), cost, err)
-    }
-
-  /**
-   *
-   */
-  def save(filename: String) = {
-    val out = Path(filename).delete().outputStream(WriteAppend: _*)
-    MathFile.save(out, Map(
-      ("vw1" -> vNet.w1),
-      ("vw2" -> vNet.w2),
-      ("vw3" -> vNet.w3),
-      ("vLambda" -> vNet.lambda),
-      ("qw1" -> qNet.w1),
-      ("qw2" -> qNet.w2),
-      ("qw3" -> qNet.w3),
-      ("qLambda" -> qNet.lambda)))
-  }
-}
-
-object LearningAgent {
-  /**
-   *
-   */
-  def defaultAgent(hiddenNeuros: Int, c: Double, alpha: Double, learnIterations: Int, lambda: Double, epsilonGreedy: Double, random: RandBasis): LearningAgent =
-    new LearningAgent(
-      TracedNetwork.defaultNetwork(HiddenStatus.statusFeatureSize, hiddenNeuros, hiddenNeuros, 1, lambda),
-      TracedNetwork.defaultNetwork(HiddenStatus.actionFeatureSize, hiddenNeuros, hiddenNeuros, 1, lambda),
-      LearningParameters(c, alpha, learnIterations), epsilonGreedy, random)
-
-  /**
-   *
-   */
-  def rand(hiddenNeuros: Int, c: Double, alpha: Double, learnIterations: Int, lambda: Double, epsilonGreedy: Double, random: RandBasis): LearningAgent =
-    new LearningAgent(
-      TracedNetwork.rand(HiddenStatus.statusFeatureSize, hiddenNeuros, hiddenNeuros, 1, lambda, random),
-      TracedNetwork.rand(HiddenStatus.actionFeatureSize, hiddenNeuros, hiddenNeuros, 1, lambda, random),
-      LearningParameters(c, alpha, learnIterations), epsilonGreedy, random)
-
-  /**
-   *
-   */
-  def load(filename: String, c: Double, alpha: Double, learnIterations: Int, epsilonGreedy: Double, random: RandBasis): LearningAgent = {
-    val vars = MathFile.load(Resource.fromFile(filename).lines())
-    if (!(vars.contains("vw1") &&
-      vars.contains("vw2") &&
-      vars.contains("vw3") &&
-      vars.contains("vLambda") &&
-      vars.contains("qw1") &&
-      vars.contains("qw2") &&
-      vars.contains("qw3") &&
-      vars.contains("qLambda")))
-      throw new IOException("Missing variables")
-    else {
-      val vNet = new TracedNetwork(
-        vars("vw1").asInstanceOf[DMatrix],
-        vars("vw2").asInstanceOf[DMatrix],
-        vars("vw3").asInstanceOf[DMatrix],
-        vars("vLambda").asInstanceOf[Double])
-      val qNet = new TracedNetwork(
-        vars("qw1").asInstanceOf[DMatrix],
-        vars("qw2").asInstanceOf[DMatrix],
-        vars("qw3").asInstanceOf[DMatrix],
-        vars("qLambda").asInstanceOf[Double])
-      new LearningAgent(vNet, qNet, LearningParameters(c, alpha, learnIterations), epsilonGreedy, random)
-    }
-  }
+  def save(filename: String) = policy.save(filename)
 }

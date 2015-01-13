@@ -43,14 +43,14 @@ object LearnApp extends App {
   if (file.isEmpty)
     throw new Error("Missing file")
 
-  val initAgent =
+  val initPolicy =
     if (Path(file).canRead) {
       println(s"Loading $file")
       println(s" iterations = $iterations")
       println(s"          c = $c")
       println(s"      alpha = $alpha")
       println(s"    epsilon = $epsilon")
-      LearningAgent.load(file, c, alpha, iterations, epsilon, random)
+      Policy.load(file, epsilon, random)
     } else {
       println(s"Creating $file")
       println(s"    hiddens = $hiddens")
@@ -59,7 +59,7 @@ object LearnApp extends App {
       println(s"      alpha = $alpha")
       println(s"     lambda = $lambda")
       println(s"    epsilon = $epsilon")
-      LearningAgent.rand(hiddens, c, alpha, iterations, lambda, epsilon, random)
+      Policy.rand(hiddens, epsilon, random)
     }
 
   println()
@@ -105,9 +105,10 @@ object LearnApp extends App {
   println(s"         $train training samples")
   println(s"         $test test samples")
 
-  val (costs, trainErrs, testErrs) = kpiLoop(n / train, (initAgent, List())) match {
-    case (_, kpis) => kpis.unzip3
-  }
+  val (costs, trainErrs, testErrs) = kpiLoop(n / train,
+    (new LearningAgent(initPolicy, LearningParameters(c, alpha, lambda), iterations, random), List())) match {
+      case (_, kpis) => kpis.unzip3
+    }
 
   // Save costs
   println(s"Writing ${out}...")

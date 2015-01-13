@@ -10,13 +10,18 @@ import breeze.linalg.operators.DenseVector_GenericOps
  * @author us00852
  *
  */
-case class HiddenStatus(status: Status, player: Boolean) {
+case class HiddenStatus(val status: Status, player: Boolean) {
 
   /**
    *
    */
   def afterState(choice: Int): HiddenStatus =
     HiddenStatus(next(choice), player)
+
+  /**
+   *
+   */
+  def isFirstHand = status.isFirstHand
 
   /**
    *

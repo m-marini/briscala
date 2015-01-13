@@ -44,7 +44,7 @@ class TracedNetworkPropTest extends PropSpec with PropertyChecks with Matchers {
 
         def loop(i: Int, net: TracedNetwork, prevCost: Double): Unit =
           if (i > 0) {
-            val (n1, cost, _) = net.learn(sample, c)
+            val (n1, cost, _) = net.learn(sample, c, lambda)
             withClue(s"at step #${n - i + 1}: ") {
               cost should be <= prevCost
             }
@@ -55,7 +55,7 @@ class TracedNetworkPropTest extends PropSpec with PropertyChecks with Matchers {
         val w2 = DenseMatrix((p(3), p(4)))
         val w3 = DenseMatrix((p(5), p(6)))
 
-        loop(10, new TracedNetwork(w1, w2, w3, lambda), 1e308);
+        loop(10, new TracedNetwork(w1, w2, w3), 1e308);
       }
     }
   }

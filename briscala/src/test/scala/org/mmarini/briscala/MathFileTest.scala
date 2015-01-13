@@ -13,7 +13,7 @@ class MathFileTest extends FunSpec with Matchers {
     val map = MathFile.load(Resource.fromFile("test.mat").lines())
 
     it("should read variabled") {
-      map should have size (8)
+      map should have size (6)
     }
   }
   describe("MathFile.save") {
