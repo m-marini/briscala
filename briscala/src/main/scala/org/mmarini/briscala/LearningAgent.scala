@@ -13,42 +13,96 @@ import java.io.IOException
 /**
  *
  */
-class LearningAgent(policy: Policy, parms: LearningParameters, learningIter: Int, random: RandBasis) {
+class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: Int, learningIter: Int, random: RandBasis) {
 
   /**
    *
    */
-  def learn: (LearningAgent, Double, Double) = improve(createGame)
+  def learn(p: Policy, p0: Policy): (Policy, Policy, (Double, Double, Double)) = {
 
-  /**
-   *
-   */
-  def play: Double = computeErrors(createGame)
+    def learnLoop(i: Int, ctx: (Policy, Double)): (Policy, Double) =
+      if (i <= 0)
+        ctx
+      else {
+        print(s"Learning #${trainingCount - i + 1}\r")
+        val (p, cost) = ctx
+        learnLoop(i - 1, playToLearn(p, p0) match {
+          case (np, c) => (np, cost + c)
+        })
+      }
 
-  /**
-   *
-   */
-  def computeErrors(game: List[(Status, Option[Int])]): Double = {
-    val (vSamples, qSamples) = extrapolateSamples(game)
+    val (np, cost) = learnLoop(trainingCount, (p, 0.0))
 
-    val vErr = vSamples.foldLeft(0.0)((err, samples) => err + policy.errV(samples))
+    def validate(i: Int, ctx: (Int, Int)): (Int, Int) =
+      if (i <= 0)
+        ctx
+      else {
+        print(s"Validating #${testCount - i + 1}\r")
+        val (trainWon, testWon) = ctx
+        validate(i - 1, playToValidate(np, p0) match {
+          case (trw, tsw) => (trainWon + trw, testWon + tsw)
+        })
+      }
 
-    qSamples.foldLeft(vErr)((err, samples) => err + policy.errQ(samples)) / (19 * 2)
+    println();
+    val (trainWon, testWon) = validate(testCount, (0, 0))
+
+    println();
+    if (trainWon > testWon)
+      (np, np.greedy, (cost / trainingCount, trainWon.toDouble / testCount, testWon.toDouble / testCount))
+    else
+      (np, p0, (cost / trainingCount, trainWon.toDouble / testCount, testWon.toDouble / testCount))
   }
 
   /**
    *
    */
-  def createGame: List[(Status, Option[Int])] = {
+  def playToLearn(p: Policy, p0: Policy): (Policy, Double) = {
+    val (vSamples, qSamples) = extrapolateSamples(createGame(p, p0))
+
+    val n = vSamples.map(_.size).sum + qSamples.map(_.size).sum
+
+    val ctx = vSamples.foldLeft(p, 0.0)((ctx, samples) => ctx match {
+      case (p, cost) => p.learnV(samples, parms) match {
+        case (np, c, _) => (np, cost + c)
+      }
+    })
+    qSamples.foldLeft(ctx)((ctx, samples) => ctx match {
+      case (p, cost) => p.learnQ(samples, parms) match {
+        case (np, c, _) => (np, cost + c)
+      }
+    }) match {
+      case (p, c) => (p, c / n)
+    }
+  }
+
+  /**
+   *
+   */
+  def createGame(p: Policy, p0: Policy): List[(Status, Option[Int])] = {
     def next(l: List[(Status, Option[Int])], s: Status): List[(Status, Option[Int])] =
       if (s.isCompleted)
         (s, None) :: l
       else {
         val h = s.playerHidden
-        val c = policy.selectAction(h)
+        val pol = if (s.isPlayer0) p else p0
+        val c = pol.selectAction(h)
         next((s, Some(c)) :: l, h.next(c))
       }
     next(List(), Game.createInitStatus(random))
+  }
+
+  /**
+   *
+   */
+  def playToValidate(p: Policy, p0: Policy): (Int, Int) = {
+    val finalState = createGame(p, p0).head._1
+    val won = if (finalState.isWinner) 1 else 0
+    val lost = if (finalState.isLooser) 1 else 0
+    if (finalState.isPlayer0)
+      (won, lost)
+    else
+      (lost, won)
   }
 
   /**
@@ -78,39 +132,4 @@ class LearningAgent(policy: Policy, parms: LearningParameters, learningIter: Int
     val vx1 = p1.map { case (s, a) => (s.oppositeHidden.statusFeatures, r0) }
     (List(vx0.reverse, vx1.reverse), List(qx0.reverse, qx1.reverse))
   }
-
-  /**
-   *
-   */
-  def improve(game: List[(Status, Option[Int])]): (LearningAgent, Double, Double) = {
-    val (vSamples, qSamples) = extrapolateSamples(game)
-
-    def loop(ctx: (Policy, Double, Double), i: Int): (Policy, Double, Double) =
-      if (i <= 0)
-        ctx
-      else {
-        val (a, _, _) = ctx
-        val ctx1 = vSamples.foldLeft(a, 0.0, 0.0)((ctx, samples) => {
-          val (policy, cost, err) = ctx
-          policy.learnV(samples, parms) match {
-            case (p, c, e) => (p, c + cost, e + err)
-          }
-        })
-        qSamples.foldLeft(ctx)((ctx, samples) => {
-          val (policy, cost, err) = ctx
-          policy.learnQ(samples, parms) match {
-            case (p, c, e) => (p, c + cost, e + cost)
-          }
-        })
-      }
-
-    loop((policy, 0.0, 0.0), learningIter) match {
-      case (a, c, e) => (new LearningAgent(policy, parms, learningIter, random), c / (19 * 2), e / (19 * 2))
-    }
-  }
-
-  /**
-   *
-   */
-  def save(filename: String) = policy.save(filename)
 }

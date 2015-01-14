@@ -64,51 +64,36 @@ object LearnApp extends App {
 
   println()
 
-  def kpiLoop(i: Int, ctx: (LearningAgent, List[(Double, Double, Double)])): (LearningAgent, List[(Double, Double, Double)]) = if (i <= 0)
-    ctx
-  else {
+  val cycles = (n + train - 1) / train
 
-    def trainLoop(j: Int, ctx: (LearningAgent, Double, Double)): (LearningAgent, Double, Double) = if (j <= 0)
+  /*
+   * The GPI loop iterates among the learning and validate phases to improve the policy
+   * In each iteration it computes the learning policy, the reference policy, the learning cost,
+   * the training performance, the test performance.
+   * The performances are the won games over the games 
+   */
+  val agent = new LearningAgent(LearningParameters(c, alpha, lambda), train, test, iterations, random)
+
+  def gpiLoop(i: Int, ctx: (Policy, Policy, List[(Double, Double, Double)])): (Policy, Policy, List[(Double, Double, Double)]) =
+    if (i <= 0)
       ctx
     else {
-      print(s"Training #${train - j + (n / train - i) * train + 1}\r")
-      val (a, cost, err) = ctx
-      trainLoop(j - 1, a.learn match {
-        case (a1, c1, e1) => (a1, cost + c1, err + e1)
-      })
+      val (p, p0, kpis) = ctx
+      val (np, np0, kpi) = agent.learn(p, p0)
+      if (np0 != p0) {
+        println(s"New policy cost=${kpi._1}, won rate=${kpi._2} vs ${kpi._3}");
+        np0.save(file)
+      }
+      gpiLoop(i - 1, (np, np0, kpi :: kpis))
     }
-
-    val (a, kpis) = ctx
-    val (a1, cost, trainErr) = trainLoop(train, (a, 0.0, 0.0))
-
-    def testErrors(i: Int, err: Double): Double = if (i <= 0)
-      err
-    else {
-      print(s"Testing #${test - i + 1}\r")
-      testErrors(i - 1, err + a1.play)
-    }
-
-    a1.save(file)
-
-    println()
-    val kpi = (cost / train,
-      sqrt(trainErr / train),
-      sqrt(testErrors(test, 0.0) / test))
-
-    println()
-    println(s"Cost=${kpi._1}, Training error=${kpi._2}, Test error=${kpi._3}")
-
-    kpiLoop(i - 1, (a1, kpi :: kpis))
-  }
 
   println(s"Training $n total samples")
   println(s"         $train training samples")
   println(s"         $test test samples")
 
-  val (costs, trainErrs, testErrs) = kpiLoop(n / train,
-    (new LearningAgent(initPolicy, LearningParameters(c, alpha, lambda), iterations, random), List())) match {
-      case (_, kpis) => kpis.unzip3
-    }
+  val (costs, trainErrs, testErrs) = gpiLoop(cycles, (initPolicy, initPolicy, List())) match {
+    case (_, _, kpis) => kpis.unzip3
+  }
 
   // Save costs
   println(s"Writing ${out}...")

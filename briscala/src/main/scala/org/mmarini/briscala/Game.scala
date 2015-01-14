@@ -2,6 +2,7 @@ package org.mmarini.briscala
 
 import scala.util.Random
 import breeze.stats.distributions.RandBasis
+import breeze.stats.distributions.Bernoulli
 
 object Game {
 
@@ -78,7 +79,7 @@ object Game {
     val deck = Deck.shuffle(random)
     val Some(trump) = deck.drop(6).find(_.isTrump)
     Status(
-      true,
+      new Bernoulli(0.5, random).draw,
       deck.take(3),
       deck.drop(3).take(3),
       Set(),

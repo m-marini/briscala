@@ -28,7 +28,7 @@ class Policy(val vNet: TracedNetwork, val qNet: TracedNetwork, epsilonGreedy: Do
   def selectAction(s: HiddenStatus): Int =
     if (s.numOfChoice == 1)
       0
-    else if (greedyProb.draw)
+    else if (epsilonGreedy > 0 && greedyProb.draw)
       selectActionExploring(s)
     else
       selectActionExploiting(s)
