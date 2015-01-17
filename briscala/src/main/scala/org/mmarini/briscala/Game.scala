@@ -6,15 +6,27 @@ import breeze.stats.distributions.Bernoulli
 
 object Game {
 
+  /**
+   *
+   */
   def create(random: RandBasis): List[(Status, Option[Int])] = {
+    val p = new RandomPolicy(random)
+    createGame(p, p, random)
+  }
+
+  /**
+   *
+   */
+  def createGame(p: Policy, p0: Policy, random: RandBasis): List[(Status, Option[Int])] = {
     def next(l: List[(Status, Option[Int])], s: Status): List[(Status, Option[Int])] =
       if (s.isCompleted)
         (s, None) :: l
       else {
-        val c = random.randInt(s.numOfChoice).draw
-        next((s, Some(c)) :: l, s.nextStatus(c))
+        val h = s.playerHidden
+        val pol = if (s.isPlayer0) p else p0
+        val c = pol.selectAction(h)
+        next((s, Some(c)) :: l, h.next(c))
       }
-
     next(List(), createInitStatus(random))
   }
 

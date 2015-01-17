@@ -50,7 +50,7 @@ object LearnApp extends App {
       println(s"          c = $c")
       println(s"      alpha = $alpha")
       println(s"    epsilon = $epsilon")
-      Policy.load(file, epsilon, random)
+      TDPolicy.load(file, epsilon, random)
     } else {
       println(s"Creating $file")
       println(s"    hiddens = $hiddens")
@@ -59,7 +59,7 @@ object LearnApp extends App {
       println(s"      alpha = $alpha")
       println(s"     lambda = $lambda")
       println(s"    epsilon = $epsilon")
-      Policy.rand(hiddens, epsilon, random)
+      TDPolicy.rand(hiddens, epsilon, random)
     }
 
   println()
@@ -74,7 +74,7 @@ object LearnApp extends App {
    */
   val agent = new LearningAgent(LearningParameters(c, alpha, lambda), train, test, iterations, random)
 
-  def gpiLoop(i: Int, ctx: (Policy, Policy, List[(Double, Double, Double)])): (Policy, Policy, List[(Double, Double, Double)]) =
+  def gpiLoop(i: Int, ctx: (TDPolicy, TDPolicy, List[(Double, Double, Double, Double)])): (TDPolicy, TDPolicy, List[(Double, Double, Double, Double)]) =
     if (i <= 0)
       ctx
     else {
@@ -91,8 +91,20 @@ object LearnApp extends App {
   println(s"         $train training samples")
   println(s"         $test test samples")
 
-  val (costs, trainErrs, testErrs) = gpiLoop(cycles, (initPolicy, initPolicy, List())) match {
-    case (_, _, kpis) => kpis.unzip3
+  def unzip4(
+    list: List[(Double, Double, Double, Double)],
+    lists: (List[Double], List[Double], List[Double], List[Double])): (List[Double], List[Double], List[Double], List[Double]) =
+    if (list.isEmpty)
+      lists
+    else
+      unzip4(list.tail,
+        (list.head._1 :: lists._1,
+          list.head._2 :: lists._2,
+          list.head._3 :: lists._3,
+          list.head._4 :: lists._4))
+
+  val (costs, trainWonRate, testWonRate, randRate) = gpiLoop(cycles, (initPolicy, initPolicy, List())) match {
+    case (_, _, kpis) => unzip4(kpis, (Nil, Nil, Nil, Nil))
   }
 
   // Save costs
@@ -100,8 +112,9 @@ object LearnApp extends App {
   Path(out).deleteIfExists()
   MathFile.save(Resource.fromFile(out),
     Map(("costs" -> DenseVector(costs.reverse.toArray).toDenseMatrix.t),
-      ("trainErrs" -> DenseVector(trainErrs.reverse.toArray).toDenseMatrix.t),
-      ("testErrs" -> DenseVector(testErrs.reverse.toArray).toDenseMatrix.t)))
+      ("trainWonRate" -> DenseVector(trainWonRate.reverse.toArray).toDenseMatrix.t),
+      ("testWonRate" -> DenseVector(testWonRate.reverse.toArray).toDenseMatrix.t),
+      ("randomRate" -> DenseVector(randRate.reverse.toArray).toDenseMatrix.t)))
 
   /**
    *

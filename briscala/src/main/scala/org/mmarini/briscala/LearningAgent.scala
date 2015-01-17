@@ -18,9 +18,9 @@ class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: In
   /**
    *
    */
-  def learn(p: Policy, p0: Policy): (Policy, Policy, (Double, Double, Double)) = {
+  def learn(p: TDPolicy, p0: TDPolicy): (TDPolicy, TDPolicy, (Double, Double, Double, Double)) = {
 
-    def learnLoop(i: Int, ctx: (Policy, Double)): (Policy, Double) =
+    def learnLoop(i: Int, ctx: (TDPolicy, Double)): (TDPolicy, Double) =
       if (i <= 0)
         ctx
       else {
@@ -33,32 +33,43 @@ class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: In
 
     val (np, cost) = learnLoop(trainingCount, (p, 0.0))
 
-    def validate(i: Int, ctx: (Int, Int)): (Int, Int) =
+    def validate(i: Int, playF: () => (Int, Int), ctx: (Int, Int)): (Int, Int) =
       if (i <= 0)
         ctx
       else {
         print(s"Validating #${testCount - i + 1}\r")
         val (trainWon, testWon) = ctx
-        validate(i - 1, playToValidate(np, p0) match {
+        validate(i - 1, playF, playF() match {
           case (trw, tsw) => (trainWon + trw, testWon + tsw)
         })
       }
 
     println();
-    val (trainWon, testWon) = validate(testCount, (0, 0))
-
+    val (trainWon, testWon) = validate(testCount, playToValidate(np, p0), (0, 0))
     println();
+
+    val (randTrainWon, randWon) = validate(testCount, playToValidate(np, new RandomPolicy(random)), (0, 0))
+    println();
+
     if (trainWon > testWon)
-      (np, np.greedy, (cost / trainingCount, trainWon.toDouble / testCount, testWon.toDouble / testCount))
+      (np, np.greedy,
+        (cost / trainingCount,
+          trainWon.toDouble / testCount,
+          testWon.toDouble / testCount,
+          randTrainWon.toDouble / testCount))
     else
-      (np, p0, (cost / trainingCount, trainWon.toDouble / testCount, testWon.toDouble / testCount))
+      (np, p0,
+        (cost / trainingCount,
+          trainWon.toDouble / testCount,
+          testWon.toDouble / testCount,
+          randTrainWon.toDouble / testCount))
   }
 
   /**
    *
    */
-  def playToLearn(p: Policy, p0: Policy): (Policy, Double) = {
-    val (vSamples, qSamples) = extrapolateSamples(createGame(p, p0))
+  def playToLearn(p: TDPolicy, p0: TDPolicy): (TDPolicy, Double) = {
+    val (vSamples, qSamples) = extrapolateSamples(Game.createGame(p, p0, random))
 
     val n = vSamples.map(_.size).sum + qSamples.map(_.size).sum
 
@@ -79,24 +90,8 @@ class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: In
   /**
    *
    */
-  def createGame(p: Policy, p0: Policy): List[(Status, Option[Int])] = {
-    def next(l: List[(Status, Option[Int])], s: Status): List[(Status, Option[Int])] =
-      if (s.isCompleted)
-        (s, None) :: l
-      else {
-        val h = s.playerHidden
-        val pol = if (s.isPlayer0) p else p0
-        val c = pol.selectAction(h)
-        next((s, Some(c)) :: l, h.next(c))
-      }
-    next(List(), Game.createInitStatus(random))
-  }
-
-  /**
-   *
-   */
-  def playToValidate(p: Policy, p0: Policy): (Int, Int) = {
-    val finalState = createGame(p, p0).head._1
+  def playToValidate(p: Policy, p0: Policy)(): (Int, Int) = {
+    val finalState = Game.createGame(p, p0, random).head._1
     val won = if (finalState.isWinner) 1 else 0
     val lost = if (finalState.isLooser) 1 else 0
     if (finalState.isPlayer0)

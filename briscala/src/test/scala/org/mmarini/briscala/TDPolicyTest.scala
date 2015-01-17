@@ -7,7 +7,7 @@ import breeze.stats.distributions.RandBasis
 import org.apache.commons.math3.random.JDKRandomGenerator
 import java.io.File
 
-class PolicyTest extends FunSpec with Matchers {
+class TDPolicyTest extends FunSpec with Matchers {
   def randBiasis = {
     val g = new JDKRandomGenerator()
     g.setSeed(1)
@@ -18,7 +18,7 @@ class PolicyTest extends FunSpec with Matchers {
     val hiddens = 3
     val epsilonGreedy = 0.0
     val random = randBiasis
-    val policy = Policy.defaultPolicy(hiddens, epsilonGreedy, random)
+    val policy = TDPolicy.defaultPolicy(hiddens, epsilonGreedy, random)
 
     describe("when saved") {
       policy.save("test.mat")
@@ -51,7 +51,7 @@ class PolicyTest extends FunSpec with Matchers {
     val epsilonGreedy = 0.0
     val random = randBiasis
 
-    val policy = Policy.rand(hiddens, epsilonGreedy, random)
+    val policy = TDPolicy.rand(hiddens, epsilonGreedy, random)
     val parms = LearningParameters(1e4, 1e-4, 1.0)
 
     describe("when learnt for second action in status for first hand player") {
@@ -70,7 +70,7 @@ class PolicyTest extends FunSpec with Matchers {
       val samples = (0 to 2).map(i =>
         (hs.afterState(i).statusFeatures, DenseVector(if (i == 1) 1.0 else 0.0))).toList
 
-      def learnLoop(n: Int, policy: Policy): Policy =
+      def learnLoop(n: Int, policy: TDPolicy): TDPolicy =
         if (n <= 0)
           policy
         else
@@ -119,7 +119,7 @@ class PolicyTest extends FunSpec with Matchers {
       val samples = (0 to 2).map(i =>
         (hs.actionFeatures(i), DenseVector(if (i == 1) 1.0 else 0.0))).toList
 
-      def learnLoop(n: Int, policy: Policy): Policy =
+      def learnLoop(n: Int, policy: TDPolicy): TDPolicy =
         if (n <= 0)
           policy
         else
