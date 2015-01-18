@@ -13,7 +13,11 @@ import java.io.IOException
 /**
  *
  */
-class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: Int, learningIter: Int, random: RandBasis) {
+class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: Int, learningIter: Int) {
+  val trainRand = CommonRandomizers.trainRand
+  val validationRand = CommonRandomizers.validationRand
+  val testRand = CommonRandomizers.testRand
+  val randomPolicy = new RandomPolicy(CommonRandomizers.policyRand)
 
   /**
    *
@@ -24,7 +28,6 @@ class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: In
       if (i <= 0)
         ctx
       else {
-        print(s"Learning #${trainingCount - i + 1}\r")
         val (p, cost) = ctx
         learnLoop(i - 1, playToLearn(p, p0) match {
           case (np, c) => (np, cost + c)
@@ -37,19 +40,15 @@ class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: In
       if (i <= 0)
         ctx
       else {
-        print(s"Validating #${testCount - i + 1}\r")
         val (trainWon, testWon) = ctx
         validate(i - 1, playF, playF() match {
           case (trw, tsw) => (trainWon + trw, testWon + tsw)
         })
       }
 
-    println();
-    val (trainWon, testWon) = validate(testCount, playToValidate(np, p0), (0, 0))
-    println();
+    val (trainWon, testWon) = validate(testCount, playToValidate(np, p0, validationRand), (0, 0))
 
-    val (randTrainWon, randWon) = validate(testCount, playToValidate(np, new RandomPolicy(random)), (0, 0))
-    println();
+    val (randTrainWon, randWon) = validate(testCount, playToValidate(np, randomPolicy, testRand), (0, 0))
 
     if (trainWon > testWon)
       (np, np.greedy,
@@ -69,7 +68,9 @@ class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: In
    *
    */
   def playToLearn(p: TDPolicy, p0: TDPolicy): (TDPolicy, Double) = {
-    val (vSamples, qSamples) = extrapolateSamples(Game.createGame(p, p0, random))
+    val game = Game.createGame(p, p0, trainRand)
+    val last = game.last._1
+    val (vSamples, qSamples) = extrapolateSamples(game)
 
     val n = vSamples.map(_.size).sum + qSamples.map(_.size).sum
 
@@ -90,7 +91,7 @@ class LearningAgent(parms: LearningParameters, trainingCount: Int, testCount: In
   /**
    *
    */
-  def playToValidate(p: Policy, p0: Policy)(): (Int, Int) = {
+  def playToValidate(p: Policy, p0: Policy, random: RandBasis)(): (Int, Int) = {
     val finalState = Game.createGame(p, p0, random).head._1
     val won = if (finalState.isWinner) 1 else 0
     val lost = if (finalState.isLooser) 1 else 0

@@ -15,33 +15,21 @@ import scalax.io.Resource
  *
  */
 object LearnApp extends App {
-  val n = argForInt("--n").getOrElse(1000)
-  val train = argForInt("--train").getOrElse(100)
-  val test = argForInt("--test").getOrElse(50)
-  val seed = argForInt("--seed")
-  val c = argForDouble("--c").getOrElse(1e3)
-  val alpha = argForDouble("--alpha").getOrElse(3e-6)
-  val lambda = argForDouble("--lambda").getOrElse(0.8)
-  val epsilon = argForDouble("--epsilon").getOrElse(0.1)
-  val hiddens = argForInt("--hiddens").getOrElse(16)
-  val iterations = argForInt("--iter").getOrElse(5)
-  val file = argFor("--file").getOrElse("networks.mat");
-  val out = argFor("--out").getOrElse("out.mat");
-
-  val gen = new JDKRandomGenerator()
-  if (!seed.isEmpty) {
-    println(s"Seed = $seed.get")
-    gen.setSeed(seed.get);
-  }
-
-  val random = new RandBasis(gen)
+  val n = 1000000
+  val train = 1000
+  val test = 500
+  val iterations = 10
+  val c = 3000
+  val alpha = 300E-9
+  val lambda = 0.8
+  val epsilon = 0.1
+  val hiddens = 32
+  val file = "network.mat"
+  val out = "out.mat"
 
   /*
    * Load agent 
    */
-
-  if (file.isEmpty)
-    throw new Error("Missing file")
 
   val initPolicy =
     if (Path(file).canRead) {
@@ -50,7 +38,7 @@ object LearnApp extends App {
       println(s"          c = $c")
       println(s"      alpha = $alpha")
       println(s"    epsilon = $epsilon")
-      TDPolicy.load(file, epsilon, random)
+      TDPolicy.load(file, epsilon, CommonRandomizers.policyRand)
     } else {
       println(s"Creating $file")
       println(s"    hiddens = $hiddens")
@@ -59,7 +47,7 @@ object LearnApp extends App {
       println(s"      alpha = $alpha")
       println(s"     lambda = $lambda")
       println(s"    epsilon = $epsilon")
-      TDPolicy.rand(hiddens, epsilon, random)
+      TDPolicy.rand(hiddens, epsilon, CommonRandomizers.policyRand)
     }
 
   println()
@@ -72,16 +60,17 @@ object LearnApp extends App {
    * the training performance, the test performance.
    * The performances are the won games over the games 
    */
-  val agent = new LearningAgent(LearningParameters(c, alpha, lambda), train, test, iterations, random)
 
   def gpiLoop(i: Int, ctx: (TDPolicy, TDPolicy, List[(Double, Double, Double, Double)])): (TDPolicy, TDPolicy, List[(Double, Double, Double, Double)]) =
     if (i <= 0)
       ctx
     else {
+      val agent = new LearningAgent(LearningParameters(c, alpha, lambda), train, test, iterations)
       val (p, p0, kpis) = ctx
       val (np, np0, kpi) = agent.learn(p, p0)
+      println(s"#${cycles - i + 1} / $cycles: cost=${kpi._1}, won rate=${kpi._2} vs ${kpi._3} randRate=${kpi._4}");
       if (np0 != p0) {
-        println(s"New policy cost=${kpi._1}, won rate=${kpi._2} vs ${kpi._3}");
+        println(s" Saveing better network")
         np0.save(file)
       }
       gpiLoop(i - 1, (np, np0, kpi :: kpis))
