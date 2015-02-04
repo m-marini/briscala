@@ -10,12 +10,13 @@ import org.apache.commons.math3.random.JDKRandomGenerator
 import breeze.stats.distributions.RandBasis
 import breeze.linalg.DenseVector
 import scalax.io.Resource
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  *
  */
-object LearnApp extends App {
-  val n = 1000000
+object LearnApp extends App with LazyLogging {
+  val n = 100000
   val train = 1000
   val test = 500
   val iterations = 10
@@ -23,7 +24,7 @@ object LearnApp extends App {
   val alpha = 300E-9
   val lambda = 0.8
   val epsilon = 0.1
-  val hiddens = 32
+  val hiddens = 40
   val file = "network.mat"
   val out = "out.mat"
 
@@ -33,24 +34,22 @@ object LearnApp extends App {
 
   val initPolicy =
     if (Path(file).canRead) {
-      println(s"Loading $file")
-      println(s" iterations = $iterations")
-      println(s"          c = $c")
-      println(s"      alpha = $alpha")
-      println(s"    epsilon = $epsilon")
+      logger.info(s"Loading $file")
+      logger.info(s" iterations = $iterations")
+      logger.info(s"          c = $c")
+      logger.info(s"      alpha = $alpha")
+      logger.info(s"    epsilon = $epsilon")
       TDPolicy.load(file, epsilon, CommonRandomizers.policyRand)
     } else {
-      println(s"Creating $file")
-      println(s"    hiddens = $hiddens")
-      println(s" iterations = $iterations")
-      println(s"          c = $c")
-      println(s"      alpha = $alpha")
-      println(s"     lambda = $lambda")
-      println(s"    epsilon = $epsilon")
+      logger.info(s"Creating $file")
+      logger.info(s"    hiddens = $hiddens")
+      logger.info(s" iterations = $iterations")
+      logger.info(s"          c = $c")
+      logger.info(s"      alpha = $alpha")
+      logger.info(s"     lambda = $lambda")
+      logger.info(s"    epsilon = $epsilon")
       TDPolicy.rand(hiddens, epsilon, CommonRandomizers.policyRand)
     }
-
-  println()
 
   val cycles = (n + train - 1) / train
 
@@ -68,17 +67,17 @@ object LearnApp extends App {
       val agent = new LearningAgent(LearningParameters(c, alpha, lambda), train, test, iterations)
       val (p, p0, kpis) = ctx
       val (np, np0, kpi) = agent.learn(p, p0)
-      println(s"#${cycles - i + 1} / $cycles: cost=${kpi._1}, won rate=${kpi._2} vs ${kpi._3} randRate=${kpi._4}");
+      logger.info(s"#${cycles - i + 1} / $cycles: cost=${kpi._1}, won rate=${kpi._2} vs ${kpi._3} randRate=${kpi._4}");
       if (np0 != p0) {
-        println(s" Saveing better network")
+        logger.info(s" Saveing better network")
         np0.save(file)
       }
       gpiLoop(i - 1, (np, np0, kpi :: kpis))
     }
 
-  println(s"Training $n total samples")
-  println(s"         $train training samples")
-  println(s"         $test test samples")
+  logger.info(s"Training $n total samples")
+  logger.info(s"         $train training samples")
+  logger.info(s"         $test test samples")
 
   def unzip4(
     list: List[(Double, Double, Double, Double)],
@@ -97,7 +96,7 @@ object LearnApp extends App {
   }
 
   // Save costs
-  println(s"Writing ${out}...")
+  logger.info(s"Writing ${out}...")
   Path(out).deleteIfExists()
   MathFile.save(Resource.fromFile(out),
     Map(("costs" -> DenseVector(costs.reverse.toArray).toDenseMatrix.t),

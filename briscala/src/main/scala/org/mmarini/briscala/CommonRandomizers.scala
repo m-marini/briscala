@@ -3,10 +3,9 @@
  */
 package org.mmarini.briscala
 
-import breeze.stats.distributions.RandBasis
-import org.apache.commons.math3.random.JDKRandomGenerator
 import org.apache.commons.math3.random.MersenneTwister
-import sbt.testing.TestSelector
+
+import breeze.stats.distributions.RandBasis
 
 /**
  * @author us00852
