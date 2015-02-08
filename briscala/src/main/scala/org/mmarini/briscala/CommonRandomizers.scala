@@ -16,23 +16,28 @@ object CommonRandomizers extends Randomizers {
   val validationSeed = 2
   val testSeed = 3
 
-  val policyRand = new RandBasis(new MersenneTwister)
+  /**
+   * Create a random generator for selection
+   */
+  def selectionRand = new RandBasis(new MersenneTwister)
 
   /**
-   *
+   * Create a random generator for policies
    */
-  //  def trainRand: RandBasis = new RandBasis(new MersenneTwister(trainSeed))
-  val trainRand = policyRand
+  def policyRand = new RandBasis(new MersenneTwister)
 
   /**
-   *
+   * Create a random generator for training data sets
    */
-  //def validationRand: RandBasis = new RandBasis(new MersenneTwister(validationSeed))
-  val validationRand = policyRand
+  def trainRand = new RandBasis(new MersenneTwister)
 
   /**
-   *
+   * Create a random generator for validation data sets
    */
-  // def testRand: RandBasis = new RandBasis(new MersenneTwister(testSeed))
-  val testRand: RandBasis = policyRand
+  def validationRand = new RandBasis(new MersenneTwister)
+
+  /**
+   * Create a random generator for test data sets
+   */
+  def testRand: RandBasis = new RandBasis(new MersenneTwister)
 }

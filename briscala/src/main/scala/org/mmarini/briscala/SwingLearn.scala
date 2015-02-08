@@ -22,12 +22,17 @@ import scala.swing.Orientation
 import scala.swing.ProgressBar
 import javax.swing.BorderFactory
 import scala.swing.FileChooser
+import akka.actor.ActorSystem
+import org.mmarini.briscala.actor.SelectionActor
+import org.mmarini.briscala.actor.SelectionCallbacks
+import com.typesafe.scalalogging.LazyLogging
+import org.mmarini.briscala.actor.StartCompetitionMessage
 
 /**
  * @author us00852
  *
  */
-object SwingLearn extends SimpleSwingApplication {
+object SwingLearn extends SimpleSwingApplication with LazyLogging {
   /**
    *
    */
@@ -35,19 +40,13 @@ object SwingLearn extends SimpleSwingApplication {
     title = "Learning"
     size = new Dimension(800, 600)
 
-    object nField extends TextField {
-      columns = 10
-      text = "1000000"
-      horizontalAlignment = Alignment.Right
-    }
-
     object trainField extends TextField {
       columns = 10
       text = "1000"
       horizontalAlignment = Alignment.Right
     }
 
-    object testField extends TextField {
+    object validationField extends TextField {
       columns = 10
       text = "500"
       horizontalAlignment = Alignment.Right
@@ -89,6 +88,24 @@ object SwingLearn extends SimpleSwingApplication {
       horizontalAlignment = Alignment.Right
     }
 
+    object populationField extends TextField {
+      columns = 10
+      text = "20"
+      horizontalAlignment = Alignment.Right
+    }
+
+    object eliminationField extends TextField {
+      columns = 10
+      text = "1"
+      horizontalAlignment = Alignment.Right
+    }
+
+    object mutationField extends TextField {
+      columns = 10
+      text = "0.01"
+      horizontalAlignment = Alignment.Right
+    }
+
     object fileField extends TextField {
       columns = 30
       text = "network.mat"
@@ -119,19 +136,13 @@ object SwingLearn extends SimpleSwingApplication {
       labelPainted = true
     }
 
-    object costField extends TextField {
-      columns = 10
-      editable = false
-      horizontalAlignment = Alignment.Right
-    }
-
     object trainRate extends TextField {
       columns = 10
       horizontalAlignment = Alignment.Right
       editable = false
     }
 
-    object testRate extends TextField {
+    object validationRate extends TextField {
       columns = 10
       horizontalAlignment = Alignment.Right
       editable = false
@@ -143,36 +154,48 @@ object SwingLearn extends SimpleSwingApplication {
       editable = false
     }
 
-    val inFields = nField :: trainField :: testField :: iterField :: cField :: alphaField :: lambdaField :: epsilonField :: hiddensField :: List()
+    val inFields = trainField :: validationField :: iterField ::
+      cField :: alphaField :: lambdaField :: epsilonField :: hiddensField ::
+      populationField :: eliminationField :: mutationField :: Nil
     val btns = fileButton :: outButton :: startButton :: Nil
 
     object startButton extends Button(Action("Start") {
-      costField.text = 1.1.toString
-      testRate.text = 1.1.toString
+      validationRate.text = 1.1.toString
       trainRate.text = 1.1.toString
       randRate.text = 1.1.toString
 
       inFields.foreach(_.editable = false)
       btns.foreach(_.enabled = false)
-      progressBar.value = 50
+      stopButton.enabled = true
+      progressBar.value = 0
+      startCompetition
     })
+
+    val sb = stopButton
+    object stopButton extends Button(Action("Stop") {
+      inFields.foreach(_.editable = true)
+      btns.foreach(_.enabled = true)
+      sb.enabled = false;
+      progressBar.value = 0
+      stopCompetition
+    })
+
+    stopButton.enabled = false
 
     object buttonPane extends BoxPanel(Orientation.Horizontal) {
       contents += startButton
+      contents += stopButton
     }
 
     object inPane extends ExtGridBagPanel {
       val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
       val fieldCons = baseCons.west
 
-      layout(new Label("n")) = baseCons
-      layout(nField) = fieldCons.hspan
-
       layout(new Label("# Train")) = baseCons
       layout(trainField) = fieldCons.hspan
 
-      layout(new Label("# Test")) = baseCons
-      layout(testField) = fieldCons.hspan
+      layout(new Label("# Validation")) = baseCons
+      layout(validationField) = fieldCons.hspan
 
       layout(new Label("# Iterations")) = baseCons
       layout(iterField) = fieldCons.hspan
@@ -192,6 +215,15 @@ object SwingLearn extends SimpleSwingApplication {
       layout(new Label("# Hiddens")) = baseCons
       layout(hiddensField) = fieldCons.hspan
 
+      layout(new Label("# Population")) = baseCons
+      layout(populationField) = fieldCons.hspan
+
+      layout(new Label("# Elimination")) = baseCons
+      layout(eliminationField) = fieldCons.hspan
+
+      layout(new Label("Mutation probability")) = baseCons
+      layout(mutationField) = fieldCons.hspan
+
       layout(new Label("Network")) = baseCons
       layout(fileField) = fieldCons
       layout(fileButton) = baseCons.hspan
@@ -207,14 +239,11 @@ object SwingLearn extends SimpleSwingApplication {
       val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
       val fieldCons = baseCons.west
 
-      layout(new Label("Cost")) = baseCons
-      layout(costField) = fieldCons.hspan
-
       layout(new Label("Train performance")) = baseCons
       layout(trainRate) = fieldCons.hspan
 
-      layout(new Label("Test performance")) = baseCons
-      layout(testRate) = fieldCons.hspan
+      layout(new Label("Validation performance")) = baseCons
+      layout(validationRate) = fieldCons.hspan
 
       layout(new Label("Random performance")) = baseCons
       layout(randRate) = fieldCons.hspan
@@ -230,6 +259,36 @@ object SwingLearn extends SimpleSwingApplication {
       contents += buttonPane
     }
     contents = vPane
+
+    val parms = SelectionParameters(
+      hiddensField.text.toInt,
+      epsilonField.text.toDouble,
+      LearningParameters(
+        cField.text.toDouble,
+        alphaField.text.toDouble,
+        lambdaField.text.toDouble),
+      iterField.text.toInt,
+      trainField.text.toInt,
+      validationField.text.toInt,
+      eliminationField.text.toInt,
+      mutationField.text.toDouble)
+    val selectionActor = ActorSystem.create.actorOf(SelectionActor.props(parms, new SelectionCallbacks() {
+      def selectedPopulation = None
+
+      def selectedResult = Some((trainWon: Int, validationWon: Int) => {
+        trainRate.text = trainWon.toString
+        validationRate.text = validationWon.toString
+      })
+    }))
+
+    def startCompetition = {
+      logger.info("Starting")
+      selectionActor ! StartCompetitionMessage(IndexedSeq())
+    }
+
+    def stopCompetition = {
+      logger.info("Stopping")
+    }
   }
 }
 

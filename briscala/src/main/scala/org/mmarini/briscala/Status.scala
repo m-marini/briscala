@@ -22,6 +22,16 @@ case class Status(
   /**
    *
    */
+  lazy val isWinner0 = isPlayer0 && isWinner || !isPlayer0 && isLooser
+
+  /**
+   *
+   */
+  lazy val isWinner1 = !isPlayer0 && isWinner || isPlayer0 && isLooser
+
+  /**
+   *
+   */
   lazy val isFirstHand = played.isEmpty
 
   /**
