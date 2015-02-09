@@ -270,6 +270,7 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
       iterField.text.toInt,
       trainField.text.toInt,
       validationField.text.toInt,
+      populationField.text.toInt,
       eliminationField.text.toInt,
       mutationField.text.toDouble)
     val selectionActor = ActorSystem.create.actorOf(SelectionActor.props(parms, new SelectionCallbacks() {

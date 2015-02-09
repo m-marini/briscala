@@ -12,6 +12,7 @@ case class SelectionParameters(
   learningIter: Int,
   trainGameCount: Int,
   validationGameCount: Int,
+  populationCount: Int,
   eliminationCount: Int,
   mutationProb: Double) {
 
