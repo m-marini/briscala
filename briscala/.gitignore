@@ -4,8 +4,10 @@
 /.cache
 /.project
 /project
+/bin
 /.worksheet
 /prova.txt
 /*.mat
 /*.mat.tar.gz
 /octave-workspace
+/.history
