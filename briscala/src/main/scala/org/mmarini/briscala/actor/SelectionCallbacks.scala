@@ -9,10 +9,25 @@ trait SelectionCallbacks {
   /**
    *
    */
-  def selectedPopulation: Option[(Seq[TDPolicy]) => Unit]
+  def startCompetition: () => Unit
 
   /**
    *
    */
-  def selectedResult: Option[(Int, Int) => Unit]
+  def selectedPopulation: (Seq[TDPolicy]) => Unit
+
+  /**
+   * Notify result selected (trainWonRate, validateWonRate, randomWonRate)
+   */
+  def selectedResult: (Double, Double, Double) => Unit
+
+  /**
+   * Notify training (pair id, remainingGames)
+   */
+  def training: (Int, Int) => Unit
+
+  /**
+   * Notify validating (pair id, remainingGames)
+   */
+  def validating: (Int, Int) => Unit
 }

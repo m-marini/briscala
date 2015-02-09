@@ -26,7 +26,7 @@ import org.mmarini.briscala.CommonRandomizers
 class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) extends Actor with LazyLogging {
   private val random = CommonRandomizers.selectionRand
   private var playersActors: IndexedSeq[ActorRef] = IndexedSeq()
-  private var results: Seq[(TDPolicy, Int, Int)] = Seq()
+  private var results: Seq[(Int, Int, TDPolicy)] = Seq()
   private var playerCount: Int = 0
   private val mutationGen = new Bernoulli(parms.mutationProb, random)
 
@@ -47,33 +47,46 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
    * message to actor to start the training phase
    */
   def startCompetition(players: IndexedSeq[TDPolicy]) = {
-    require(players.size > 0 && players.size % 2 == 0)
+    val pp =
+      if (parms.populationCount > players.size) {
+        players ++: (
+          for (i <- players.size until parms.populationCount)
+            yield createRandPolicy)
+      } else
+        players
+    require(pp.size > 0 && pp.size % 2 == 0)
 
-    playerCount = players.size
+    playerCount = pp.size
 
     val na = playerCount / 2;
     if (playersActors.size < na) {
-      val p = for (i <- playersActors.size to na)
+      val p = for (i <- playersActors.size until na)
         yield context.actorOf(PlayingActor.props(
+        i,
         new TrainingAgent(parms.learningParms, parms.learningIter),
-        new ValidationAgent(parms.validationGameCount)))
+        new ValidationAgent(parms.validationGameCount),
+        callbacks))
       playersActors ++= p
     }
 
-    val shuffled = random.permutation(playerCount).draw.map(players(_))
-    val pairs = for (i <- 0 to shuffled.size by 2) yield (shuffled(i), shuffled(i + 1))
+    val shuffled = random.permutation(playerCount).draw.map(pp(_))
+    val pairs = for (i <- 0 until shuffled.size by 2) yield (shuffled(i), shuffled(i + 1))
+    logger.debug(s"Starting competition ...")
     results = IndexedSeq()
-    for (i <- 0 to players.size)
-      playersActors(i) ! TrainingGameMessage(parms.trainGameCount, (pairs(i)._1, 0), (pairs(i)._2, 0))
+
+    callbacks.startCompetition()
+
+    for (i <- 0 until na)
+      playersActors(i) ! TrainingGameMessage(parms.trainGameCount, (0, pairs(i)._1), (0, pairs(i)._2))
   }
 
   /**
    * Register the end of competition between a pair of players.
    * If it is the last pair it runs the selection for next competition iteration
    */
-  def registerEndCompetition(p0: (TDPolicy, Int, Int), p1: (TDPolicy, Int, Int)) = {
+  def registerEndCompetition(p0: (Int, Int, TDPolicy), p1: (Int, Int, TDPolicy)) = {
     results = p0 +: p1 +: results
-    if (playerCount >= results.size)
+    if (results.size >= playerCount)
       select
   }
 
@@ -83,25 +96,37 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
    * random player
    */
   def select = {
+    logger.debug("Selecting ...")
     val sortedResults = results.sortWith((a, b) => (a, b) match {
-      case ((_, _, v0), (_, _, v1)) => v0 >= v1
+      case ((_, v0, _), (_, v1, _)) => v0 >= v1
     })
 
     val best = sortedResults.head
-    if (!callbacks.selectedResult.isEmpty)
-      callbacks.selectedResult.get(best._2, best._3)
+    callbacks.selectedResult(
+      best._1.toDouble / parms.trainGameCount,
+      best._2.toDouble / parms.validationGameCount,
+      0.5)
 
-    val sortedPop = sortedResults.map { case (policy, _, _) => policy }
-    if (!callbacks.selectedPopulation.isEmpty)
-      callbacks.selectedPopulation.get(sortedPop)
+    val sortedPop = sortedResults.map { case (_, _, policy) => policy }
+    callbacks.selectedPopulation(sortedPop)
 
     val n = sortedPop.size
     val newPop = sortedPop.take(n - parms.eliminationCount) ++: sortedPop.take(parms.eliminationCount)
-    val newPop1 = if (mutationGen.draw)
-      newPop.take(n - 1) :+ TDPolicy.rand(parms.hiddenNeuros, parms.epsilonGreedy, CommonRandomizers.policyRand)
-    else
+    val newPop1 = if (mutationGen.draw) {
+      logger.debug("Create mutated policy")
+      newPop.take(n - 1) :+ createRandPolicy
+    } else
       newPop
     self ! StartCompetitionMessage(newPop1.toIndexedSeq)
+  }
+
+  /**
+   * Generate a new random policy
+   */
+  private def createRandPolicy: TDPolicy = {
+    val rnd = CommonRandomizers.policyRand
+    val nh = rnd.randInt(1, parms.hiddenNeuros + 1).draw
+    TDPolicy.rand(nh, parms.epsilonGreedy, rnd)
   }
 }
 

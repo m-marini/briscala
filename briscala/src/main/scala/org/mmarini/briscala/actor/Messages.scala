@@ -10,20 +10,20 @@ import org.mmarini.briscala.TDPolicy
  * @author us00852
  *
  */
-case class TrainingGameMessage(n: Int, player0: (TDPolicy, Int), player1: (TDPolicy, Int)) {
+case class TrainingGameMessage(n: Int, player0: (Int, TDPolicy), player1: (Int, TDPolicy)) {
 }
 
 /**
  *
  */
-case class ValidationGameMessage(n: Int, player0: (TDPolicy, Int, Int), player1: (TDPolicy, Int, Int)) {
+case class ValidationGameMessage(n: Int, player0: (Int, Int, TDPolicy), player1: (Int, Int, TDPolicy)) {
 
 }
 
 /**
  *
  */
-case class EndCompetitionMessage(player0: (TDPolicy, Int, Int), player1: (TDPolicy, Int, Int)) {
+case class EndCompetitionMessage(player0: (Int, Int, TDPolicy), player1: (Int, Int, TDPolicy)) {
 
 }
 

@@ -20,12 +20,12 @@ class TrainingAgent(parms: LearningParameters, learningIter: Int) extends Abstra
    * Play a game and modify the policy on results of game
    * Returns the new policies, costs and if the game result
    */
-  def play(p0: TDPolicy, p1: TDPolicy): ((TDPolicy, Boolean), (TDPolicy, Boolean)) = {
+  def play(p0: TDPolicy, p1: TDPolicy): ((Boolean, TDPolicy), (Boolean, TDPolicy)) = {
     val game = Game.createGame(p0, p1, trainRand)
-    val last = game.last._1
+    val last = game.head._1
 
     val samples = extrapolateSamples(game)
-    ((train(p0, samples), last.isWinner0), (train(p1, samples), last.isWinner1))
+    ((last.isWinner0, train(p0, samples)), (last.isWinner1, train(p1, samples)))
   }
 
   /**

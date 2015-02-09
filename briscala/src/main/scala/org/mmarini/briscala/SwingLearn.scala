@@ -27,12 +27,17 @@ import org.mmarini.briscala.actor.SelectionActor
 import org.mmarini.briscala.actor.SelectionCallbacks
 import com.typesafe.scalalogging.LazyLogging
 import org.mmarini.briscala.actor.StartCompetitionMessage
+import javax.swing.SwingUtilities
+import breeze.linalg.DenseVector
+import scalax.io.Resource
+import scalax.file.Path
 
 /**
  * @author us00852
  *
  */
 object SwingLearn extends SimpleSwingApplication with LazyLogging {
+  private var results: IndexedSeq[(Double, Double, Double)] = IndexedSeq()
   /**
    *
    */
@@ -90,7 +95,7 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
 
     object populationField extends TextField {
       columns = 10
-      text = "20"
+      text = "2"
       horizontalAlignment = Alignment.Right
     }
 
@@ -108,12 +113,13 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
 
     object fileField extends TextField {
       columns = 30
-      text = "network.mat"
+      text = "network"
       editable = false
     }
     object fileButton extends Button(Action("...") {
-      if (fileChooser.showSaveDialog(null) == FileChooser.Result.Approve)
+      if (fileChooser.showSaveDialog(null) == FileChooser.Result.Approve) {
         fileField.text = fileChooser.selectedFile.toString
+      }
     })
     object fileChooser extends FileChooser {
       title = "Network file"
@@ -121,7 +127,7 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
 
     object outField extends TextField {
       columns = 30
-      text = "out.mat"
+      text = "outx.mat"
       editable = false
     }
     object outButton extends Button(Action("...") {
@@ -260,37 +266,92 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
     }
     contents = vPane
 
-    val parms = SelectionParameters(
-      hiddensField.text.toInt,
-      epsilonField.text.toDouble,
-      LearningParameters(
-        cField.text.toDouble,
-        alphaField.text.toDouble,
-        lambdaField.text.toDouble),
-      iterField.text.toInt,
-      trainField.text.toInt,
-      validationField.text.toInt,
-      populationField.text.toInt,
-      eliminationField.text.toInt,
-      mutationField.text.toDouble)
-    val selectionActor = ActorSystem.create.actorOf(SelectionActor.props(parms, new SelectionCallbacks() {
-      def selectedPopulation = None
-
-      def selectedResult = Some((trainWon: Int, validationWon: Int) => {
-        trainRate.text = trainWon.toString
-        validationRate.text = validationWon.toString
+    def saveResult(trainingRate: Double, valRate: Double, randomRate: Double) = {
+      SwingUtilities.invokeLater(new Runnable() {
+        def run = {
+          trainRate.text = trainingRate.toString
+          validationRate.text = valRate.toString
+          randRate.text = randomRate.toString
+        }
       })
-    }))
+      val r1 = results :+ (trainingRate, valRate, randomRate)
+      val r2 = if (r1.size > 100) r1.drop(r1.size - 100) else r1
+      logger.info(s"Writing ${outField.text}...")
+      Path(outField.text).deleteIfExists()
+      MathFile.save(Resource.fromFile(outField.text),
+        r2.unzip3 match {
+          case (t, v, r) => Map(
+            "trainRate" -> DenseVector(t.toArray).toDenseMatrix.t,
+            "valRate" -> DenseVector(v.toArray).toDenseMatrix.t,
+            "randomRate" -> DenseVector(r.toArray).toDenseMatrix.t)
+        })
+      results = r2
+    }
 
     def startCompetition = {
       logger.info("Starting")
-      selectionActor ! StartCompetitionMessage(IndexedSeq())
+      val parms = SelectionParameters(
+        hiddensField.text.toInt,
+        epsilonField.text.toDouble,
+        LearningParameters(
+          cField.text.toDouble,
+          alphaField.text.toDouble,
+          lambdaField.text.toDouble),
+        iterField.text.toInt,
+        trainField.text.toInt,
+        validationField.text.toInt,
+        populationField.text.toInt,
+        eliminationField.text.toInt,
+        mutationField.text.toDouble)
+
+      val selectionActor = ActorSystem.create.actorOf(SelectionActor.props(parms, new SelectionCallbacks() {
+
+        def startCompetition = () => SwingUtilities.invokeLater(new Runnable() {
+          def run = {
+            progressBar.max = (parms.trainGameCount + parms.validationGameCount) * parms.populationCount / 2
+            progressBar.value = 0
+            logger.debug(s"Progress bar max=${progressBar.max}")
+          }
+        })
+
+        def selectedPopulation = (p) => savePopulation(fileField.text, p)
+
+        def selectedResult = saveResult
+
+        def training = (a, b) => SwingUtilities.invokeLater(new Runnable() {
+          def run = progressBar.value += 1
+        })
+
+        def validating = (a, b) => SwingUtilities.invokeLater(new Runnable() {
+          def run = progressBar.value += 1
+        })
+      }))
+
+      selectionActor ! StartCompetitionMessage(loadPopulation(fileField.text, parms.populationCount, parms.epsilonGreedy))
     }
 
     def stopCompetition = {
       logger.info("Stopping")
     }
   }
+
+  /**
+   * Load population
+   */
+  def loadPopulation(filePrefix: String, n: Int, epsilonGreedy: Double): IndexedSeq[TDPolicy] =
+    for {
+      fn <- (0 until n).map(i => s"$filePrefix-$i.mat")
+      if (Path(fn).canRead)
+    } yield {
+      TDPolicy.load(fn, epsilonGreedy, CommonRandomizers.policyRand)
+    }
+
+  /**
+   * Save population
+   */
+  def savePopulation(filePrefix: String, pop: Seq[TDPolicy]) =
+    for (i <- 0 until pop.size)
+      pop(i).save(s"$filePrefix-$i.mat")
 }
 
 class ExtGridBagPanel extends GridBagPanel {
