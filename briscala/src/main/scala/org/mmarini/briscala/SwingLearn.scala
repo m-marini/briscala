@@ -274,18 +274,8 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
           randRate.text = randomRate.toString
         }
       })
-      val r1 = results :+ (trainingRate, valRate, randomRate)
-      val r2 = if (r1.size > 100) r1.drop(r1.size - 100) else r1
-      logger.info(s"Writing ${outField.text}...")
-      Path(outField.text).deleteIfExists()
-      MathFile.save(Resource.fromFile(outField.text),
-        r2.unzip3 match {
-          case (t, v, r) => Map(
-            "trainRate" -> DenseVector(t.toArray).toDenseMatrix.t,
-            "valRate" -> DenseVector(v.toArray).toDenseMatrix.t,
-            "randomRate" -> DenseVector(r.toArray).toDenseMatrix.t)
-        })
-      results = r2
+      results = results :+ (trainingRate, valRate, randomRate)
+      saveResults(outField.text, results)
     }
 
     def startCompetition = {
@@ -336,6 +326,20 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
   }
 
   /**
+   * Save results
+   */
+  def saveResults(filename: String, results: Seq[(Double, Double, Double)]) = {
+    Path(filename).deleteIfExists()
+    MathFile.save(Resource.fromFile(filename),
+      results.unzip3 match {
+        case (t, v, r) => Map(
+          "trainRate" -> DenseVector(t.toArray).toDenseMatrix.t,
+          "valRate" -> DenseVector(v.toArray).toDenseMatrix.t,
+          "randomRate" -> DenseVector(r.toArray).toDenseMatrix.t)
+      })
+  }
+
+  /**
    * Load population
    */
   def loadPopulation(filePrefix: String, n: Int, epsilonGreedy: Double): IndexedSeq[TDPolicy] =
@@ -352,93 +356,4 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
   def savePopulation(filePrefix: String, pop: Seq[TDPolicy]) =
     for (i <- 0 until pop.size)
       pop(i).save(s"$filePrefix-$i.mat")
-}
-
-class ExtGridBagPanel extends GridBagPanel {
-
-  class ExtConstraints(c: GridBagConstraints) extends Constraints(c) {
-    /**
-     * <
-     *
-     */
-    def this(c: ExtConstraints) = this(new GridBagConstraints(c.self.gridx, c.self.gridy,
-      c.self.gridwidth, c.self.gridheight,
-      c.self.weightx, c.self.weighty,
-      c.self.anchor, c.self.fill, c.self.insets,
-      c.self.ipadx, c.self.ipady))
-
-    /**
-     *
-     */
-    def at(c: (Int, Int)) = {
-      val c1 = new ExtConstraints(this)
-      c1.grid = c
-      c1
-    }
-
-    /**
-     *
-     */
-    def setInsets(c: (Int, Int, Int, Int)) = {
-      val c1 = new ExtConstraints(this)
-      c1.insets = new Insets(c._1, c._2, c._3, c._4)
-      c1
-    }
-
-    /**
-     *
-     */
-    def hspan = {
-      val c1 = new ExtConstraints(this)
-      c1.gridwidth = GridBagConstraints.REMAINDER
-      c1
-    }
-
-    /**
-     *
-     */
-    def hfill = {
-      val c1 = new ExtConstraints(this)
-      c1.fill = GridBagPanel.Fill.Horizontal
-      c1
-    }
-
-    /**
-     *
-     */
-    def right = {
-      val c1 = new ExtConstraints(this)
-      c1.gridx = GridBagConstraints.RELATIVE
-      c1
-    }
-
-    /**
-     *
-     */
-    def east = {
-      val c1 = new ExtConstraints(this)
-      c1.anchor = GridBagPanel.Anchor.East
-      c1
-    }
-
-    /**
-     *
-     */
-    def west = {
-      val c1 = new ExtConstraints(this)
-      c1.anchor = GridBagPanel.Anchor.West
-      c1
-    }
-
-    /**
-     *
-     */
-    def hweight(w: Double) = {
-      val c1 = new ExtConstraints(this)
-      c1.weightx = w
-      c1
-    }
-  }
-
-  object defCons extends ExtConstraints(new GridBagConstraints)
 }
