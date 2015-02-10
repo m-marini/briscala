@@ -16,6 +16,12 @@ case class TrainingGameMessage(n: Int, player0: (Int, TDPolicy), player1: (Int, 
 /**
  *
  */
+case class RandomPolicyGameMessage(n: Int, player0: (Int, TDPolicy)) {
+}
+
+/**
+ *
+ */
 case class ValidationGameMessage(n: Int, player0: (Int, Int, TDPolicy), player1: (Int, Int, TDPolicy)) {
 
 }
@@ -30,7 +36,7 @@ case class EndCompetitionMessage(player0: (Int, Int, TDPolicy), player1: (Int, I
 /**
  *
  */
-object ShutdownMessage {
+case object ShutdownMessage {
 
 }
 

@@ -30,4 +30,9 @@ trait SelectionCallbacks {
    * Notify validating (pair id, remainingGames)
    */
   def validating: (Int, Int) => Unit
+
+  /**
+   * Notify testiing (remainingGames)
+   */
+  def testing: (Int) => Unit
 }

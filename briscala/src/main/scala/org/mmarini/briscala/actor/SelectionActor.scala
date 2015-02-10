@@ -18,6 +18,8 @@ import org.mmarini.briscala.TDPolicy
 import org.mmarini.briscala.SelectionParameters
 import breeze.stats.distributions.Bernoulli
 import org.mmarini.briscala.CommonRandomizers
+import org.mmarini.briscala.RandomPolicy
+import org.mmarini.briscala.Game
 
 /**
  * @author us00852
@@ -29,6 +31,8 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
   private var results: Seq[(Int, Int, TDPolicy)] = Seq()
   private var playerCount: Int = 0
   private val mutationGen = new Bernoulli(parms.mutationProb, random)
+  private val randomGen = CommonRandomizers.policyRand
+  private val randomPolicy = new RandomPolicy(randomGen)
 
   /**
    * Handle received message
@@ -39,6 +43,19 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
 
     case EndCompetitionMessage(p0, p1) => registerEndCompetition(p0, p1)
 
+    case RandomPolicyGameMessage(0, (won, _)) => select(won)
+
+    case RandomPolicyGameMessage(n, (won, policy)) => {
+      callbacks.testing(n)
+      val finalState = Game.createGame(policy, randomPolicy, randomGen).head._1
+      self ! RandomPolicyGameMessage(n - 1, (won + (if (finalState.isWinner0) 1 else 0), policy))
+    }
+
+    case ShutdownMessage => {
+      playersActors.foreach(context.stop(_))
+      context.stop(self)
+    }
+
   }
 
   /**
@@ -46,7 +63,7 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
    * Create the necessary Playing Actor, create the player pairs and send
    * message to actor to start the training phase
    */
-  def startCompetition(players: IndexedSeq[TDPolicy]) = {
+  private def startCompetition(players: IndexedSeq[TDPolicy]) = {
     val pp =
       if (parms.populationCount > players.size) {
         players ++: (
@@ -84,30 +101,37 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
    * Register the end of competition between a pair of players.
    * If it is the last pair it runs the selection for next competition iteration
    */
-  def registerEndCompetition(p0: (Int, Int, TDPolicy), p1: (Int, Int, TDPolicy)) = {
+  private def registerEndCompetition(p0: (Int, Int, TDPolicy), p1: (Int, Int, TDPolicy)) = {
     results = p0 +: p1 +: results
     if (results.size >= playerCount)
-      select
+      runTest
   }
 
   /**
-   * Sort the networks by validation results.
-   * Then replaces the worst player with the best players and randomly substitutes worst player with
-   * random player
+   * Sort the networks by validation results and start the test phase on best player
    */
-  def select = {
-    logger.debug("Selecting ...")
-    val sortedResults = results.sortWith((a, b) => (a, b) match {
+  private def runTest = {
+    results = results.sortWith((a, b) => (a, b) match {
       case ((_, v0, _), (_, v1, _)) => v0 >= v1
     })
+    self ! RandomPolicyGameMessage(parms.randomGameCount, (0, results.head._3))
+  }
 
-    val best = sortedResults.head
+  /**
+   * Replaces the worst players with the best players and randomly substitutes worst player with
+   * random player
+   */
+  private def select(randWon: Int) = {
+    logger.debug("Selecting ...")
+
+    val best = results.head
+
     callbacks.selectedResult(
       best._1.toDouble / parms.trainGameCount,
       best._2.toDouble / parms.validationGameCount,
-      0.5)
+      randWon.toDouble / parms.randomGameCount)
 
-    val sortedPop = sortedResults.map { case (_, _, policy) => policy }
+    val sortedPop = results.map { case (_, _, policy) => policy }
     callbacks.selectedPopulation(sortedPop)
 
     val n = sortedPop.size

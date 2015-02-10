@@ -93,7 +93,7 @@ object MathFile extends LazyLogging {
     else
       in1.head
   }
-  
+
   /**
    *
    */
