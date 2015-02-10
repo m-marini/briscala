@@ -8,12 +8,14 @@ import breeze.linalg.DenseMatrix
 import scala.util.matching.Regex
 import scalax.io.Output
 import java.io.IOException
+import breeze.util.LazyLogger
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  * @author us00852
  *
  */
-object MathFile {
+object MathFile extends LazyLogging {
 
   /**
    *
@@ -84,6 +86,17 @@ object MathFile {
   /**
    *
    */
+  def seekForString(in: LongTraversable[String]): String = {
+    val in1 = in.drop(2)
+    if (in1.isEmpty)
+      throw new IOException(s"Missing string value")
+    else
+      in1.head
+  }
+  
+  /**
+   *
+   */
   def seekForVar(in: LongTraversable[String]): Option[(LongTraversable[String], String, Any)] =
     seekForRegex(in, """# name: (\w*)""".r) match {
       case Some((in1, varName)) =>
@@ -93,6 +106,7 @@ object MathFile {
             Some(in.tail, varName, matrix)
           }
           case "scalar" => Some(in1.drop(2), varName, seekForScalar(in1.tail))
+          case "string" => Some(in1.drop(3), varName, seekForString(in1.tail))
           case typ => throw new IOException(s"Unrecognize type ${typ}")
         }
       case _ => None
@@ -140,9 +154,18 @@ object MathFile {
       out.write(s" $value\n\n")
     }
 
+    def writeString(name: String, value: String): Unit = {
+      out.write(s"# name: $name\n");
+      out.write("# type: string\n")
+      out.write(s"# elements: 1\n")
+      out.write(s"# length: ${value.length}\n")
+      out.write(s"$value\n\n")
+    }
+
     vars.foreach {
       case (name, value) if (value.isInstanceOf[DenseMatrix[Double]]) => writeMatrix(name, value.asInstanceOf[DenseMatrix[Double]])
       case (name, value) if (value.isInstanceOf[Double]) => writeScalar(name, value.asInstanceOf[Double])
+      case (name, value) if (value.isInstanceOf[String]) => writeString(name, value.toString)
     }
 
   }
