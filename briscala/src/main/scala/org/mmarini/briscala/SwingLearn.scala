@@ -3,36 +3,37 @@
  */
 package org.mmarini.briscala
 
-import scala.swing.SimpleSwingApplication
-import scala.swing.MainFrame
 import java.awt.Dimension
-import scala.swing.MenuBar
-import scala.swing.Menu
-import scala.swing.GridBagPanel
-import scala.swing.TextField
-import scala.swing.Button
 import scala.swing.Action
-import java.awt.GridBagConstraints
-import scala.swing.Label
-import scala.swing.Insets
 import scala.swing.Alignment
-import java.awt.GridBagLayout
 import scala.swing.BoxPanel
-import scala.swing.Orientation
-import scala.swing.ProgressBar
-import javax.swing.BorderFactory
+import scala.swing.Button
 import scala.swing.FileChooser
-import akka.actor.ActorSystem
+import scala.swing.Label
+import scala.swing.MainFrame
+import scala.swing.Menu
+import scala.swing.Orientation
+import scala.swing.TabbedPane.Page
+import scala.swing.ProgressBar
+import scala.swing.SimpleSwingApplication
+import scala.swing.TabbedPane
+import scala.swing.TextField
 import org.mmarini.briscala.actor.SelectionActor
 import org.mmarini.briscala.actor.SelectionCallbacks
-import com.typesafe.scalalogging.LazyLogging
-import org.mmarini.briscala.actor.StartCompetitionMessage
-import javax.swing.SwingUtilities
-import breeze.linalg.DenseVector
-import scalax.io.Resource
-import scalax.file.Path
-import akka.actor.ActorRef
 import org.mmarini.briscala.actor.ShutdownMessage
+import org.mmarini.briscala.actor.StartCompetitionMessage
+import com.typesafe.scalalogging.LazyLogging
+import akka.actor.ActorRef
+import akka.actor.ActorSystem
+import breeze.linalg.DenseVector
+import javax.swing.BorderFactory
+import javax.swing.SwingUtilities
+import scalax.file.Path
+import scalax.io.Resource
+import scala.swing.Panel
+import scala.swing.ScrollPane
+import scala.swing.Table
+import javax.swing.table.DefaultTableModel
 
 /**
  * @author us00852
@@ -197,6 +198,7 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
     btns.foreach(_.enabled = false)
     stopButton.enabled = true
     progressBar.value = 0
+    playersTable.model.asInstanceOf[DefaultTableModel].setNumRows(0)
     startCompetition
   }
 
@@ -209,6 +211,114 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
   }
 
   stopButton.enabled = false;
+
+  object outPane extends ExtGridBagPanel {
+    val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
+    val fieldCons = baseCons.west
+
+    layout(new Label("Train performance")) = baseCons
+    layout(trainRate) = fieldCons.hspan
+
+    layout(new Label("Validation performance")) = baseCons
+    layout(validationRate) = fieldCons.hspan
+
+    layout(new Label("Random performance")) = baseCons
+    layout(randRate) = fieldCons.hspan
+
+    layout(progressBar) = baseCons.hweight(1).hfill.hspan
+
+    border = BorderFactory.createTitledBorder("Outputs")
+  }
+
+  object buttonPane extends BoxPanel(Orientation.Horizontal) {
+    contents += startButton
+    contents += stopButton
+  }
+
+  object inPane extends ExtGridBagPanel {
+    val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
+    val fieldCons = baseCons.west
+
+    layout(new Label("# Train Games")) = baseCons
+    layout(trainField) = fieldCons.hspan
+
+    layout(new Label("# Validation Games")) = baseCons
+    layout(validationField) = fieldCons.hspan
+
+    layout(new Label("# Random Games")) = baseCons
+    layout(randomField) = fieldCons.hspan
+
+    layout(new Label("Network filename")) = baseCons
+    layout(fileField) = fieldCons
+    layout(fileButton) = baseCons.hspan
+
+    layout(new Label("Performance filename")) = baseCons
+    layout(outField) = fieldCons
+    layout(outButton) = baseCons.hspan
+
+    border = BorderFactory.createTitledBorder("Inputs")
+  }
+
+  object selectionPane extends ExtGridBagPanel {
+    val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
+    val fieldCons = baseCons.west
+
+    layout(new Label("# Players")) = baseCons
+    layout(populationField) = fieldCons.hspan
+
+    layout(new Label("# Eliminating players")) = baseCons
+    layout(eliminationField) = fieldCons.hspan
+
+    layout(new Label("Mutation probability")) = baseCons
+    layout(mutationField) = fieldCons.hspan
+
+    border = BorderFactory.createTitledBorder("Selection")
+  }
+
+  object learningPane extends ExtGridBagPanel {
+    val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
+    val fieldCons = baseCons.west
+
+    layout(new Label("# Update iterations")) = baseCons
+    layout(iterField) = fieldCons.hspan
+
+    layout(new Label("c")) = baseCons
+    layout(cField) = fieldCons.hspan
+
+    layout(new Label("alpha")) = baseCons
+    layout(alphaField) = fieldCons.hspan
+
+    layout(new Label("lambda")) = baseCons
+    layout(lambdaField) = fieldCons.hspan
+
+    layout(new Label("epsilon")) = baseCons
+    layout(epsilonField) = fieldCons.hspan
+
+    layout(new Label("# Hidden neurons")) = baseCons
+    layout(hiddensField) = fieldCons.hspan
+
+    border = BorderFactory.createTitledBorder("Learning")
+  }
+
+  object playersTable extends Table {
+    model = new DefaultTableModel {
+      val names = List("ID", "Date", "Training Rate", "Validation Rate")
+      override def getColumnName(column: Int) = names(column)
+      override def getColumnCount() = names.size
+    }
+  }
+
+  object playersPane extends ScrollPane {
+    contents = playersTable
+  }
+
+  object tabPane extends TabbedPane {
+    pages += new Page("Inputs", inPane)
+    pages += new Page("Learning", learningPane)
+    pages += new Page("Selection", selectionPane)
+    pages += new Page("Players", playersPane)
+  }
+
   /**
    * Create top frame
    */
@@ -216,82 +326,8 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
     title = "Learning"
     size = new Dimension(800, 600)
 
-    object buttonPane extends BoxPanel(Orientation.Horizontal) {
-      contents += startButton
-      contents += stopButton
-    }
-
-    object inPane extends ExtGridBagPanel {
-      val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
-      val fieldCons = baseCons.west
-
-      layout(new Label("# Train Games")) = baseCons
-      layout(trainField) = fieldCons.hspan
-
-      layout(new Label("# Validation Games")) = baseCons
-      layout(validationField) = fieldCons.hspan
-
-      layout(new Label("# Random Games")) = baseCons
-      layout(randomField) = fieldCons.hspan
-
-      layout(new Label("# Update iterations")) = baseCons
-      layout(iterField) = fieldCons.hspan
-
-      layout(new Label("c")) = baseCons
-      layout(cField) = fieldCons.hspan
-
-      layout(new Label("alpha")) = baseCons
-      layout(alphaField) = fieldCons.hspan
-
-      layout(new Label("lambda")) = baseCons
-      layout(lambdaField) = fieldCons.hspan
-
-      layout(new Label("epsilon")) = baseCons
-      layout(epsilonField) = fieldCons.hspan
-
-      layout(new Label("# Hidden neurons")) = baseCons
-      layout(hiddensField) = fieldCons.hspan
-
-      layout(new Label("# Players")) = baseCons
-      layout(populationField) = fieldCons.hspan
-
-      layout(new Label("# Eliminating players")) = baseCons
-      layout(eliminationField) = fieldCons.hspan
-
-      layout(new Label("Mutation probability")) = baseCons
-      layout(mutationField) = fieldCons.hspan
-
-      layout(new Label("Network filename")) = baseCons
-      layout(fileField) = fieldCons
-      layout(fileButton) = baseCons.hspan
-
-      layout(new Label("Performance filename")) = baseCons
-      layout(outField) = fieldCons
-      layout(outButton) = baseCons.hspan
-
-      border = BorderFactory.createTitledBorder("Inputs")
-    }
-
-    object outPane extends ExtGridBagPanel {
-      val baseCons = defCons.setInsets(5, 5, 5, 5).right.east
-      val fieldCons = baseCons.west
-
-      layout(new Label("Train performance")) = baseCons
-      layout(trainRate) = fieldCons.hspan
-
-      layout(new Label("Validation performance")) = baseCons
-      layout(validationRate) = fieldCons.hspan
-
-      layout(new Label("Random performance")) = baseCons
-      layout(randRate) = fieldCons.hspan
-
-      layout(progressBar) = baseCons.hweight(1).hfill.hspan
-
-      border = BorderFactory.createTitledBorder("Outputs")
-    }
-
     object vPane extends BoxPanel(Orientation.Vertical) {
-      contents += inPane
+      contents += tabPane
       contents += outPane
       contents += buttonPane
     }
@@ -400,7 +436,20 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
   /**
    * Save population
    */
-  private def savePopulation(filePrefix: String, pop: Seq[TDPolicy]) =
-    for (i <- 0 until pop.size)
-      pop(i).save(s"$filePrefix-$i.mat")
+  private def savePopulation(filePrefix: String, pop: IndexedSeq[(Double, Double, TDPolicy)]) = {
+    for (((_, _, p), i) <- pop.zipWithIndex)
+      p.save(s"$filePrefix-$i.mat")
+    SwingUtilities.invokeAndWait(new Runnable() {
+      def run = {
+        val m = playersTable.model.asInstanceOf[DefaultTableModel]
+        m.setRowCount(pop.size)
+        for (((tranRate, valRate, policy), i) <- pop.zipWithIndex) {
+          m.setValueAt(policy.id, i, 0)
+          m.setValueAt(policy.date, i, 1)
+          m.setValueAt(tranRate.toString, i, 2)
+          m.setValueAt(valRate.toString, i, 3)
+        }
+      }
+    })
+  }
 }

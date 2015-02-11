@@ -28,7 +28,7 @@ import org.mmarini.briscala.Game
 class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) extends Actor with LazyLogging {
   private val random = CommonRandomizers.selectionRand
   private var playersActors: IndexedSeq[ActorRef] = IndexedSeq()
-  private var results: Seq[(Int, Int, TDPolicy)] = Seq()
+  private var results: IndexedSeq[(Int, Int, TDPolicy)] = IndexedSeq()
   private var playerCount: Int = 0
   private val mutationGen = new Bernoulli(parms.mutationProb, random)
   private val randomGen = CommonRandomizers.policyRand
@@ -114,6 +114,9 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
     results = results.sortWith((a, b) => (a, b) match {
       case ((_, v0, _), (_, v1, _)) => v0 >= v1
     })
+    callbacks.selectedPopulation(results.map {
+      case (t, v, p) => (t.toDouble / parms.trainGameCount, v.toDouble / parms.validationGameCount, p)
+    })
     self ! RandomPolicyGameMessage(parms.randomGameCount, (0, results.head._3))
   }
 
@@ -132,7 +135,6 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
       randWon.toDouble / parms.randomGameCount)
 
     val sortedPop = results.map { case (_, _, policy) => policy }
-    callbacks.selectedPopulation(sortedPop)
 
     val n = sortedPop.size
     val newPop = sortedPop.take(n - parms.eliminationCount) ++: sortedPop.take(parms.eliminationCount)

@@ -14,7 +14,7 @@ trait SelectionCallbacks {
   /**
    *
    */
-  def selectedPopulation: (Seq[TDPolicy]) => Unit
+  def selectedPopulation: (IndexedSeq[(Double, Double, TDPolicy)]) => Unit
 
   /**
    * Notify result selected (trainWonRate, validateWonRate, randomWonRate)

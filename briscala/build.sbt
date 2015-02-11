@@ -20,6 +20,10 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.2"
 
 libraryDependencies += "org.scalanlp" %% "breeze" % "0.10"
 
+// libraryDependencies += "com.github.nscala-time" %% "nscala-time" % "1.8.0"
+
+libraryDependencies += "com.github.nscala-time" % "nscala-time_2.11" % "1.8.0"
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2" % Test
 
 libraryDependencies += "org.scalamock" %% "scalamock-core" % "3.1.2" % Test
