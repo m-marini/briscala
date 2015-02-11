@@ -340,9 +340,9 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
   private def saveResult(trainingRate: Double, valRate: Double, randomRate: Double) = {
     SwingUtilities.invokeLater(new Runnable() {
       def run = {
-        trainRate.text = trainingRate.toString
-        validationRate.text = valRate.toString
-        randRate.text = randomRate.toString
+        trainRate.text = f"$trainingRate%.3G"
+        validationRate.text = f"$valRate%.3G"
+        randRate.text = f"$randomRate%.3G"
       }
     })
     results = results :+ (trainingRate, valRate, randomRate)
@@ -446,8 +446,8 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
         for (((tranRate, valRate, policy), i) <- pop.zipWithIndex) {
           m.setValueAt(policy.id, i, 0)
           m.setValueAt(policy.date, i, 1)
-          m.setValueAt(tranRate.toString, i, 2)
-          m.setValueAt(valRate.toString, i, 3)
+          m.setValueAt(f"$tranRate%.3G", i, 2)
+          m.setValueAt(f"$valRate%.3G", i, 3)
         }
       }
     })
