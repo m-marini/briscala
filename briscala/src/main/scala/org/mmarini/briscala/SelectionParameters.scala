@@ -15,6 +15,6 @@ case class SelectionParameters(
   randomGameCount: Int,
   populationCount: Int,
   eliminationCount: Int,
-  mutationProb: Double) {
+  mutationMean: Double) {
 
 }

@@ -4,6 +4,7 @@
 package org.mmarini.briscala.actor
 
 import org.mmarini.briscala.LearningParameters
+import scala.math.min
 import org.mmarini.briscala.Network
 import org.mmarini.briscala.TrainingAgent
 import org.mmarini.briscala.TrainingAgent
@@ -20,6 +21,7 @@ import breeze.stats.distributions.Bernoulli
 import org.mmarini.briscala.CommonRandomizers
 import org.mmarini.briscala.RandomPolicy
 import org.mmarini.briscala.Game
+import breeze.stats.distributions.Poisson
 
 /**
  * @author us00852
@@ -30,7 +32,7 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
   private var playersActors: IndexedSeq[ActorRef] = IndexedSeq()
   private var results: IndexedSeq[(Int, Int, TDPolicy)] = IndexedSeq()
   private var playerCount: Int = 0
-  private val mutationGen = new Bernoulli(parms.mutationProb, random)
+  private val mutationGen = new Poisson(parms.mutationMean)(random)
   private val randomGen = CommonRandomizers.policyRand
   private val randomPolicy = new RandomPolicy(randomGen)
 
@@ -136,14 +138,15 @@ class SelectionActor(parms: SelectionParameters, callbacks: SelectionCallbacks) 
 
     val sortedPop = results.map { case (_, _, policy) => policy }
 
+    // Substitute the worst policies with a copy of best ones
     val n = sortedPop.size
     val newPop = sortedPop.take(n - parms.eliminationCount) ++: sortedPop.take(parms.eliminationCount)
-    val newPop1 = if (mutationGen.draw) {
-      logger.debug("Create mutated policy")
-      newPop.take(n - 1) :+ createRandPolicy
-    } else
-      newPop
-    self ! StartCompetitionMessage(newPop1.toIndexedSeq)
+
+    // Randomize networks
+    val m = min(mutationGen.draw, n - 1)
+    logger.debug(f"Randomizing last ${m}%d policies")
+    val newPop1 = newPop.take(n - m) ++ ((1 to m).map(_ => createRandPolicy))
+    self ! StartCompetitionMessage(newPop1)
   }
 
   /**

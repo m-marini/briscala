@@ -45,19 +45,19 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
 
   object trainField extends TextField {
     columns = 10
-    text = "100"
+    text = "1000"
     horizontalAlignment = Alignment.Right
   }
 
   object validationField extends TextField {
     columns = 10
-    text = "50"
+    text = "300"
     horizontalAlignment = Alignment.Right
   }
 
   object randomField extends TextField {
     columns = 10
-    text = "50"
+    text = "100"
     horizontalAlignment = Alignment.Right
   }
 
@@ -93,25 +93,25 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
 
   object hiddensField extends TextField {
     columns = 10
-    text = "32"
+    text = "100"
     horizontalAlignment = Alignment.Right
   }
 
   object populationField extends TextField {
     columns = 10
-    text = "10"
+    text = "20"
     horizontalAlignment = Alignment.Right
   }
 
   object eliminationField extends TextField {
     columns = 10
-    text = "1"
+    text = "2"
     horizontalAlignment = Alignment.Right
   }
 
   object mutationField extends TextField {
     columns = 10
-    text = "0.01"
+    text = "0.5"
     horizontalAlignment = Alignment.Right
   }
 
@@ -269,7 +269,7 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
     layout(new Label("# Eliminating players")) = baseCons
     layout(eliminationField) = fieldCons.hspan
 
-    layout(new Label("Mutation probability")) = baseCons
+    layout(new Label("Mutation mean")) = baseCons
     layout(mutationField) = fieldCons.hspan
 
     border = BorderFactory.createTitledBorder("Selection")
@@ -302,10 +302,11 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
 
   object playersTable extends Table {
     model = new DefaultTableModel {
-      val names = List("ID", "Date", "Training Rate", "Validation Rate")
+      val names = List("ID", "Date", "# Hidden", "Training Rate", "Validation Rate")
       override def getColumnName(column: Int) = names(column)
       override def getColumnCount() = names.size
     }
+    this.enabled = false
   }
 
   object playersPane extends ScrollPane {
@@ -324,7 +325,6 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
    */
   def top = new MainFrame {
     title = "Learning"
-    size = new Dimension(800, 600)
 
     object vPane extends BoxPanel(Orientation.Vertical) {
       contents += tabPane
@@ -332,6 +332,7 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
       contents += buttonPane
     }
     contents = vPane
+    size = new Dimension(800, 600)
   }
 
   /**
@@ -395,8 +396,11 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
         def run = progressBar.value += 1
       })
     }))
-
-    selectionActor ! StartCompetitionMessage(loadPopulation(fileField.text, parms.populationCount, parms.epsilonGreedy))
+    logger.info("Loading population...")
+    val p = loadPopulation(fileField.text, parms.populationCount, parms.epsilonGreedy)
+    logger.info("Population loaded")
+    showPopulation(p.map((0.0, 0.0, _)))
+    selectionActor ! StartCompetitionMessage(p)
   }
 
   /**
@@ -430,6 +434,7 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
       fn <- (0 until n).map(i => s"$filePrefix-$i.mat")
       if (Path(fn).canRead)
     } yield {
+      logger.info(s"Loading $fn ...")
       TDPolicy.load(fn, epsilonGreedy, CommonRandomizers.policyRand)
     }
 
@@ -440,16 +445,22 @@ object SwingLearn extends SimpleSwingApplication with LazyLogging {
     for (((_, _, p), i) <- pop.zipWithIndex)
       p.save(s"$filePrefix-$i.mat")
     SwingUtilities.invokeAndWait(new Runnable() {
-      def run = {
-        val m = playersTable.model.asInstanceOf[DefaultTableModel]
-        m.setRowCount(pop.size)
-        for (((tranRate, valRate, policy), i) <- pop.zipWithIndex) {
-          m.setValueAt(policy.id, i, 0)
-          m.setValueAt(policy.date, i, 1)
-          m.setValueAt(f"$tranRate%.3G", i, 2)
-          m.setValueAt(f"$valRate%.3G", i, 3)
-        }
-      }
+      def run = showPopulation(pop)
     })
+  }
+
+  /**
+   *
+   */
+  private def showPopulation(pop: IndexedSeq[(Double, Double, TDPolicy)]) {
+    val m = playersTable.model.asInstanceOf[DefaultTableModel]
+    m.setRowCount(pop.size)
+    for (((tranRate, valRate, policy), i) <- pop.zipWithIndex) {
+      m.setValueAt(policy.id, i, 0)
+      m.setValueAt(policy.date, i, 1)
+      m.setValueAt(f"${policy.vNet.w1.rows}%d", i, 2)
+      m.setValueAt(f"$tranRate%.3G", i, 3)
+      m.setValueAt(f"$valRate%.3G", i, 4)
+    }
   }
 }
