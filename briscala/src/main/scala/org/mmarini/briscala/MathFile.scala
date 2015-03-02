@@ -10,6 +10,7 @@ import scalax.io.Output
 import java.io.IOException
 import breeze.util.LazyLogger
 import com.typesafe.scalalogging.LazyLogging
+import scala.annotation.tailrec
 
 /**
  * @author us00852
@@ -20,6 +21,7 @@ object MathFile extends LazyLogging {
   /**
    *
    */
+  @tailrec
   def seekForRegex(in: LongTraversable[String], regex: Regex): Option[(LongTraversable[String], String)] = if (in.isEmpty)
     None
   else

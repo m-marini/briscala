@@ -9,6 +9,7 @@ import scalax.io.StandardOpenOption.WriteAppend
 import breeze.linalg.DenseMatrix
 import scalax.io.Resource
 import java.io.IOException
+import scala.annotation.tailrec
 
 /**
  * The training agent manage the training phase modifying the policies by playing game
@@ -34,7 +35,8 @@ class TrainingAgent(parms: LearningParameters, learningIter: Int) extends Abstra
   private def train(policy: TDPolicy, samples: (List[List[Sample]], List[List[Sample]])): TDPolicy = {
     val (vSamples, qSamples) = samples
     val n = vSamples.map(_.size).sum + qSamples.map(_.size).sum
-
+    
+    @tailrec
     def trainLoop(ctx: (Int, TDPolicy)): (Int, TDPolicy) = ctx match {
       case (0, _) => ctx
 
